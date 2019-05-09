@@ -1,0 +1,203 @@
+from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
+from rest_framework.viewsets import ModelViewSet, ViewSet
+from rest_framework.response import Response
+from django.db.models import F
+from .models import Account, OperationAccount, AccountType, Journal, JournalTransactionType, Posting, DWHBalanceAccount, \
+    BankAccount,VirtualAccountDeposit
+from .serializers import AccountSerializer, OperationAccountSerializer, AccountTypeSerializer, JournalSerializer, \
+    JournalTransactionTypeSerializer, PostingSerializer, JournalOperationInvestmentTransactionSerializer, \
+    DWHBalanceAccountSerializer, BankRegistrySerializer, VirtualAccountDepositSerializer, VirtualAccountDepositFormatSerializer
+
+
+
+
+
+
+
+
+
+class AccountViewSet(ModelViewSet):
+    queryset = Account.objects.all()
+    serializer_class = AccountSerializer
+
+    @action(detail=False, methods=['get'])
+    def positive_balance(self, request, pk=None):
+        # investment = get_object_or_404(Account, id=pk)
+        return Response({'status': 'password set'})
+
+
+
+    @action(methods=['post'], detail=True)
+    def positive_balance2(self, request, pk=None):
+        print("pk!!!!!!!")
+        print(pk)
+        # investment = get_object_or_404(Account, id=pk)
+        # investment, confirmed = investment.confirm()
+        # serializer = AccountSerializer(investment)  # DWHBalanceAccountSerializer(investment)
+        return Response({'status': 'password set'})
+
+
+
+
+class OperationAccountViewSet(ModelViewSet):
+    queryset = OperationAccount.objects.all()
+    serializer_class = OperationAccountSerializer
+
+
+class AccountTypeViewSet(ModelViewSet):
+    queryset = AccountType.objects.all()
+    serializer_class = AccountTypeSerializer
+
+    @action(detail=True, )
+    def positive_balance(self, request, pk=None):
+        print("account_type")
+        print(pk)
+        positive_balance_accounts = DWHBalanceAccount.objects.values('account__name', ).filter(
+            balance_account_amount__gt=0, account__external_account_type=pk).annotate(
+            account_id=F('account__external_account_id'), account_type=F('account__external_account_type'),
+            balance_account=F('balance_account_amount'))  # .extra(select={'blablabla': 'account__external_account_id'})
+
+        return Response(positive_balance_accounts)
+
+
+class JournalViewSet(ModelViewSet):
+    queryset = Journal.objects.all()
+    serializer_class = JournalSerializer
+
+
+class JournalTransactionTypeViewSet(ModelViewSet):
+    queryset = JournalTransactionType.objects.all()
+    serializer_class = JournalTransactionTypeSerializer
+
+
+class PostingViewSet(ModelViewSet):
+    queryset = Posting.objects.all()
+    serializer_class = PostingSerializer
+
+
+class JournalTransactionViewSet(ModelViewSet):
+    queryset = Posting.objects.all()
+    serializer_class = JournalOperationInvestmentTransactionSerializer
+
+
+
+
+
+class BalanceAccountViewSet(ModelViewSet):
+    queryset = DWHBalanceAccount.objects.all()
+    serializer_class = DWHBalanceAccountSerializer
+
+    @action(detail=False, methods=['post'])
+    def set_password(self, request, pk=None):
+
+        #investment = get_object_or_404(Account, id=pk)
+            return Response({'status': 'password set'})
+
+
+
+    @action(methods=['post'], detail=True)
+    def positive_balance(self, request, pk):
+        print("pk!!!!!!!")
+        print(pk)
+        #investment = get_object_or_404(Account, id=pk)
+        # investment, confirmed = investment.confirm()
+        #serializer = AccountSerializer(investment)  # DWHBalanceAccountSerializer(investment)
+        return Response({'status': 'password set'})
+
+
+    @action(methods=['post'], detail=True)
+    def confirm(self, request, pk):
+        print("pk!!!!!!!")
+        print(pk)
+        investment = get_object_or_404(Account, id=pk)
+        # investment, confirmed = investment.confirm()
+        serializer = AccountSerializer(investment)  # DWHBalanceAccountSerializer(investment)
+        return Response(serializer.data)
+
+        # if confirmed:
+        #     serializer = InvestmentSerializer(investment)
+        #     return Response(serializer.data)
+        #
+        # else:
+        #     detail = {'detail': f'The investment \"id={investment.id}\", can not be confirmed'}
+        #     raise ValidationError(detail)
+
+
+
+class BankRegistryViewSet(ModelViewSet):
+    queryset = BankAccount.objects.all()
+    serializer_class = BankRegistrySerializer
+
+    def destroy(self, request, *args, **kwargs):
+        return Response({'status': 'NO NO NO'})
+
+
+class PositiveBalanceViewSet(ViewSet):
+    """
+
+
+    """
+
+    def list(self, request):
+
+        queryset = DWHBalanceAccount.objects.values('account__name').filter(balance_account_amount__gt = 0).annotate(account_id=F('account__external_account_id'), account_type=F('account__external_account_type'), balance_account=F('balance_account_amount')  )#.extra(select={'blablabla': 'account__external_account_id'})
+        #serializer = DWHBalanceAccountSerializer(queryset, many=True)
+        return Response(queryset)
+
+    @action(detail=False, )
+    def positive_balance(self, request, account_type=None):
+        print("account_type")
+        print(account_type)
+        positive_balance_accounts = DWHBalanceAccount.objects.values('account__name', ).filter(
+            balance_account_amount__gt=0, account__external_account_type=account_type).annotate(
+            account_id=F('account__external_account_id'), account_type=F('account__external_account_type'),
+            balance_account=F('balance_account_amount'))  # .extra(select={'blablabla': 'account__external_account_id'})
+
+        return Response(positive_balance_accounts)
+
+    @action(detail=True, )
+    def positive_balance(self, request, pk=None):
+        print("HOLA 123!!!!!!!")
+        print(request)
+        print(pk)
+        return Response({'status': 'hola'})
+
+    def retrieve(self, request, pk=None):
+        queryset = DWHBalanceAccount.objects.values('account__name').filter(balance_account_amount__gt = 0).annotate(account_id=F('account__external_account_id'), account_type=F('account__external_account_type'), balance_account=F('balance_account_amount')  )#.extra(select={'blablabla': 'account__external_account_id'})
+
+
+class VirtualAccountDepositViewSet(ViewSet):
+
+
+    def list(self, request):
+
+        queryset = VirtualAccountDeposit.objects.all()
+        serializer = VirtualAccountDepositFormatSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def create(self, request):
+        serializer = VirtualAccountDepositSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response(serializer.validated_data)
+
+        return Response({
+            'status': 'Bad request',
+            'message': serializer.errors
+        }, )
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,158 @@
+[
+  {
+    "model": "account_engine.AssetType",
+    "pk": 1,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "CLP"
+      }
+  },
+  {
+    "model": "account_engine.AssetType",
+    "pk": 2,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "MXP"
+    }
+  },
+   {
+    "model": "account_engine.AccountType",
+    "pk": 1,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "account_type": "Persona"
+      }
+  },
+  {
+    "model": "account_engine.AccountType",
+    "pk": 2,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "account_type": "Empresa"
+      }
+  },
+  {
+    "model": "account_engine.AccountType",
+    "pk": 3,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "account_type": "Operacion"
+      }
+  },
+  {
+    "model": "account_engine.AccountType",
+    "pk": 4,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "account_type": "Costos Cumplo"
+      }
+  },
+   {
+    "model": "account_engine.AccountType",
+    "pk": 5,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "account_type": "Costos Reembolsables"
+      }
+  },
+    {
+      "model": "account_engine.Account",
+      "pk": 1,
+      "fields": {
+      "name": "Cumplo Asesorias",
+      "external_account_id": 1,
+      "external_account_type": 4,
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z"
+      }
+  },
+   {
+      "model": "account_engine.Account",
+      "pk": 1,
+      "fields": {
+      "name": "Cumplo Operaciones",
+      "external_account_id": 2,
+      "external_account_type": 4,
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z"
+      }
+  },
+
+  {
+    "model": "account_engine.JournalTransactionType",
+    "pk": 1,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Transferencia desde cuenta Real a Virtual"
+
+    }
+  },
+  {
+    "model": "account_engine.JournalTransactionType",
+    "pk": 2,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Transferencia desde cuenta Virtual a Real"
+
+    }
+  },
+   {
+    "model": "account_engine.JournalTransactionType",
+    "pk": 3,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Transferencia desde cuenta Virtual a cuenta de Operacion"
+
+    }
+  },
+    {
+    "model": "account_engine.JournalTransactionType",
+    "pk": 4,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Financiamiento de operacion por Inversion"
+
+    }
+  },
+    {
+    "model": "account_engine.JournalTransactionType",
+    "pk": 5,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Instruccion de pago a Solicitante"
+
+    }
+  },
+  {
+    "model": "account_engine.JournalTransactionType",
+    "pk": 6,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Instruccion de pago de Cuota de Operación"
+
+    }
+  },
+  {
+    "model": "account_engine.JournalTransactionType",
+    "pk": 7,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Instruccion de pago a Inversionistas"
+
+    }
+  }
+]
