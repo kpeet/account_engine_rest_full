@@ -19,6 +19,7 @@ class Account(MixinDateModel):
     name = models.CharField(max_length=150)
     external_account_id = models.CharField(null=False, max_length=150)
     external_account_type = models.ForeignKey(AccountType, null=False,  on_delete=models.PROTECT)
+    balance_account = models.DecimalField(null=False, decimal_places=2, default=0, max_digits=20)
 
     class Meta:
         unique_together = ('external_account_id', 'external_account_type')
@@ -26,12 +27,12 @@ class Account(MixinDateModel):
 
 
 class OperationAccount(Account):
-    financing_amount = models.DecimalField(null=False, decimal_places=5, default=0, max_digits=20)
+    financing_amount = models.DecimalField(null=False, decimal_places=2, default=0, max_digits=20)
     requester_account = models.ForeignKey(Account, related_name='requestor', null=False, on_delete=models.PROTECT)
 
 
 class DWHBalanceAccount(MixinDateModel):
-    balance_account_amount = models.DecimalField( null=False, decimal_places=5, default=0, max_digits=20)
+    balance_account_amount = models.DecimalField( null=False, decimal_places=2, default=0, max_digits=20)
     account = models.OneToOneField(Account, unique=True, null=True, on_delete=models.PROTECT)
 
 
@@ -55,7 +56,7 @@ class BankAccount(MixinDateModel):
 
 class Batch(MixinDateModel):
     description = models.CharField(max_length=150)
-    total_amount = models.DecimalField(null=False, default=Decimal('0.00000'), max_digits=20, decimal_places=5)# validators=[positive_number])
+    total_amount = models.DecimalField(null=False, default=Decimal('0.00000'), max_digits=20, decimal_places=2)# validators=[positive_number])
 
 
 class Instalment(MixinDateModel):

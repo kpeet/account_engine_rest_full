@@ -10,34 +10,9 @@ from .serializers import AccountSerializer, OperationAccountSerializer, AccountT
     DWHBalanceAccountSerializer, BankRegistrySerializer, VirtualAccountDepositSerializer, VirtualAccountDepositFormatSerializer
 
 
-
-
-
-
-
-
-
 class AccountViewSet(ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
-
-    @action(detail=False, methods=['get'])
-    def positive_balance(self, request, pk=None):
-        # investment = get_object_or_404(Account, id=pk)
-        return Response({'status': 'password set'})
-
-
-
-    @action(methods=['post'], detail=True)
-    def positive_balance2(self, request, pk=None):
-        print("pk!!!!!!!")
-        print(pk)
-        # investment = get_object_or_404(Account, id=pk)
-        # investment, confirmed = investment.confirm()
-        # serializer = AccountSerializer(investment)  # DWHBalanceAccountSerializer(investment)
-        return Response({'status': 'password set'})
-
-
 
 
 class OperationAccountViewSet(ModelViewSet):
@@ -51,8 +26,6 @@ class AccountTypeViewSet(ModelViewSet):
 
     @action(detail=True, )
     def positive_balance(self, request, pk=None):
-        print("account_type")
-        print(pk)
         positive_balance_accounts = DWHBalanceAccount.objects.values('account__name', ).filter(
             balance_account_amount__gt=0, account__external_account_type=pk).annotate(
             account_id=F('account__external_account_id'), account_type=F('account__external_account_type'),
@@ -108,29 +81,14 @@ class BalanceAccountViewSet(ModelViewSet):
 
     @action(methods=['post'], detail=True)
     def confirm(self, request, pk):
-        print("pk!!!!!!!")
-        print(pk)
         investment = get_object_or_404(Account, id=pk)
-        # investment, confirmed = investment.confirm()
-        serializer = AccountSerializer(investment)  # DWHBalanceAccountSerializer(investment)
+        serializer = AccountSerializer(investment)
         return Response(serializer.data)
-
-        # if confirmed:
-        #     serializer = InvestmentSerializer(investment)
-        #     return Response(serializer.data)
-        #
-        # else:
-        #     detail = {'detail': f'The investment \"id={investment.id}\", can not be confirmed'}
-        #     raise ValidationError(detail)
-
 
 
 class BankRegistryViewSet(ModelViewSet):
     queryset = BankAccount.objects.all()
     serializer_class = BankRegistrySerializer
-
-    def destroy(self, request, *args, **kwargs):
-        return Response({'status': 'NO NO NO'})
 
 
 class PositiveBalanceViewSet(ViewSet):
@@ -169,9 +127,7 @@ class PositiveBalanceViewSet(ViewSet):
 
 class VirtualAccountDepositViewSet(ViewSet):
 
-
     def list(self, request):
-
         queryset = VirtualAccountDeposit.objects.all()
         serializer = VirtualAccountDepositFormatSerializer(queryset, many=True)
         return Response(serializer.data)

@@ -6,10 +6,13 @@ from rest_framework.fields import empty
 from rest_framework.serializers import ModelSerializer
 from rest_framework.validators import UniqueValidator
 from django.db.models import Sum
+
 from .constants import TRANSACTION_TYPE
 
 
 from .models import Account, OperationAccount, AccountType, Journal, JournalTransactionType, Posting, DWHBalanceAccount, BankAccount, VirtualAccountDeposit, AssetType
+
+from .account_engine_services import UpdateBalanceAccountService
 
 
 class NotUniqueSerializer(ModelSerializer):
@@ -29,7 +32,6 @@ class CoreSerializer(NotUniqueSerializer):
     }
 
     def __init__(self, instance=None, data=empty, lookup_field=None, **kwargs):
-        print("AQUI VOY")
         super().__init__(instance, data, **kwargs)
 
         self.lookup_field = lookup_field if lookup_field is not None else self.default_lookup_field
@@ -38,7 +40,6 @@ class CoreSerializer(NotUniqueSerializer):
         validated_data = super().to_internal_value(data)
 
         try:
-            print("Aqui voy 2")
             lookup = {self.lookup_field: validated_data.pop(self.lookup_field)}
             instance, created = self.Meta.model.objects.update_or_create(defaults=validated_data, **lookup)
 
@@ -57,7 +58,7 @@ class AccountSerializer(serializers.ModelSerializer):
 class OperationAccountSerializer(serializers.Serializer):
 
     operation_id = serializers.CharField(required=True, source='external_account_id', max_length=150)
-    financing_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=5)
+    financing_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=2)
     requester_id = serializers.IntegerField(required=True, source='requester_account_id')
 
     def validate(self, data):
@@ -132,9 +133,6 @@ class DestinationAccountSerializer(serializers.Serializer):
         pass
 
     id = serializers.IntegerField(required=True)
-    #account_type = serializers.IntegerField(required=True)
-    #account_name = serializers.CharField(required=True)
-    #sub_account = SubAccountSerializer()
 
 
 class BillingPropertiesSerializers(serializers.Serializer):
@@ -165,7 +163,7 @@ class CostSerializer(serializers.Serializer):
     def create(self, validated_data):
         return validated_data
 
-    amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=5)
+    amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=2)
     billing_properties = BillingPropertiesSerializers(required=True)
     account_engine_properties = AccountEnginePropertiesSerializer(required=True)
 
@@ -175,8 +173,8 @@ class JournalOperationInvestmentTransactionSerializer(serializers.Serializer):
     investor_account_type = serializers.IntegerField(required=True)
     external_operation_id = serializers.CharField(required=True)
     investment_id = serializers.IntegerField(required=True)
-    total_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=5)
-    investment_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=5)
+    total_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=2)
+    investment_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=2)
     investment_cost = CostSerializer(many=True)
 
     def update(self, instance, validated_data):
@@ -190,6 +188,7 @@ class JournalOperationInvestmentTransactionSerializer(serializers.Serializer):
 
         try:
             return []
+
             # financing_response = FinanceOperationByInvestmentTransaction.execute(
             #     {
             #         'account': investor_account.id,
@@ -230,7 +229,7 @@ class VirtualAccountDepositSerializer(serializers.Serializer):
     real_account = serializers.CharField(required=True, max_length=150)
     external_account_id = serializers.CharField(required=True, max_length=150)
     external_account_type = serializers.CharField(required=True, max_length=150)
-    amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=5)
+    amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=2)
     asset_type = serializers.IntegerField(required=True)
     deposit_date = serializers.DateField(required=True)
 
@@ -253,6 +252,10 @@ class VirtualAccountDepositSerializer(serializers.Serializer):
 
         bank_account=BankAccount.objects.get(id=validated_data['real_account'])
 
+###############################################################################################
+###############################################################################################
+###############################################################################################
+
         virtual_account_deposits=VirtualAccountDeposit.objects.create(amount=validated_data['amount'], deposit_date=validated_data['deposit_date'],asset_type_id=validated_data['asset_type'],account=destiny_account,real_account=bank_account )
 
 
@@ -264,117 +267,17 @@ class VirtualAccountDepositSerializer(serializers.Serializer):
         Posting.objects.create(account=destiny_account, journal=journal, amount=validated_data['amount'],
                                               asset_type_id=validated_data['asset_type'])
 
+        UpdateBalanceAccountService.execute(
+            {
+                'account_id': destiny_account.id
+            }
+        )
 
-
-        dwh_balance_account = Posting.objects.filter(account=destiny_account).aggregate(Sum('amount'))
-
-        DWHBalanceAccount.objects.update_or_create(account=destiny_account, defaults={
-            'balance_account_amount': dwh_balance_account['amount__sum']})
-
-
+###############################################################################################
+###############################################################################################
+###############################################################################################
 
         return virtual_account_deposits
 
     def update(self, instance, validated_data):
         pass
-
-
-
-
-
-        ###############################################################################################
-        ###############################################################################################
-
-
-
-        # posting = RealToVirtualDepositService.execute(
-        #     {
-        #         "real_account_id": validated_data['real_account'],
-        #         "virtual_account_id": destiny_account.id,
-        #         "asset_type_id": asset_type.id,
-        #         "transaction_type": 1,
-        #         "amount": validated_data['amount'],
-        #         "deposit_date" : validated_data['deposit_date']
-        #     }
-        # )
-
-
-#
-# class BankRegistrySerializer(serializers.Serializer):
-#     external_account_type = serializers.IntegerField(required=True)
-#     external_account_id = serializers.IntegerField(required=True)
-#     bank_account_number = serializers.IntegerField(required=True)
-#     account_notification_email = serializers.EmailField(required=True)
-#     bank_code = serializers.IntegerField(required=True)
-#     account_bank_type = serializers.IntegerField(required=True)
-#     account_holder_name = serializers.CharField(required=True, max_length=200)
-#     account_holder_document_number = serializers.CharField(required=True, max_length=12)
-#
-#     def validate(self, data):
-#         try:
-#
-#             Account.objects.get(external_account_id=data['external_account_id'],
-#                                 external_account_type_id=data['external_account_type'])
-#             return data
-#         except Exception as e:
-#             raise serializers.ValidationError(str(e))
-#
-#
-#     def update(self, instance, validated_data):
-#         pass
-#
-#     def create(self, validated_data):
-#         account = Account.objects.get(external_account_id=validated_data['external_account_id'], external_account_type_id=validated_data['external_account_type'])
-#
-#         bank_registry = BankRegistryService.execute(
-#             {
-#                 "account": account.id,
-#                 "bank_account_number": validated_data['bank_account_number'],
-#                 "account_notification_email": validated_data['account_notification_email'],
-#                 "bank_code": validated_data['bank_code'],
-#                 "account_bank_type":validated_data['account_bank_type'],
-#                 "account_holder_name" : validated_data['account_holder_name'],
-#                 "account_holder_document_number" : validated_data['account_holder_document_number']
-#
-#             }
-#         )
-#         return bank_registry
-#
-
-#
-#
-# class UserSerializer(CoreSerializer):
-#     class Meta:
-#         model = User
-#         fields = '__all__'
-#
-#
-# class EnterpriseCreationSerializer(NotUniqueSerializer):
-#     class Meta:
-#         model = Enterprise
-#         fields = '__all__'
-#
-#     def create(self, validated_data):
-#         try:
-#             with transaction.atomic():
-#                 # check if a temporal enterprise exist
-#                 document_number = validated_data['document_number']
-#                 temporal_enterprise = Enterprise.objects.get(document_number=document_number, id__lt=0)
-#                 temporal_enterprise.document_number += '-temp'
-#                 temporal_enterprise.save()
-#
-#                 # create the enterprise
-#                 instance = super().create(validated_data)
-#
-#                 # update all backups that point to the temporary enterprise with the new enterprise
-#                 Backup.objects.filter(enterprise_payer=temporal_enterprise).update(enterprise_payer=instance)
-#
-#                 # delete temporal enterprise
-#                 temporal_enterprise.delete()
-#
-#         except Enterprise.DoesNotExist:
-#             # if a Enterprise DoesNotExist Exception is raised,
-#             # that means the enterprise can be created without need update backups
-#             instance = super().create(validated_data)
-#
-#         return instance
