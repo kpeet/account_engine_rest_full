@@ -14,9 +14,13 @@ from core_account_engine.utils import generate_sns_topic
 from django.conf import settings
 from .helper_services import CUMPLO_COST_ACCOUNT
 from .helper_services import SEND_AWS_SNS
+import logging
 
 
 class RequesterPaymentFromOperation(Service):
+    TRANSACTION_TYPE = 5
+    log = logging.getLogger("info_logger")
+
     account = forms.IntegerField(required=True)
     total_amount = forms.DecimalField(required=True)
     transfer_amount = forms.DecimalField(required=True)
@@ -163,8 +167,36 @@ class RequesterPaymentFromOperation(Service):
             }
         )
 
+        if SEND_AWS_SNS:
+            self.log.info("SNS start RequestorPayment Services to SNS_TREASURY_PAYSHEET")
 
-        # TODO: DEFINIR COLA PARA ENVIAR LA CONFIRMACION DEL PAGO DE LA CUOTA
+            sns = SnsServiceLibrary()
+            sns_topic = generate_sns_topic(settings.SNS_TREASURY_PAYSHEET)
+
+            arn = sns.get_arn_by_name(sns_topic)
+
+            attribute = {}  # sns.make_attributes(type='response', status='success')
+
+
+            payload = {
+                "origin_account": from_account_bank.bank_account_number,
+                "beneficiary_name": to_requestor_account_bank.account_holder_name,
+                "document_number": to_requestor_account_bank.account_holder_document_number,
+                "email": to_requestor_account_bank.account_notification_email,
+                "message": "Pago a Solicitante",  # journal_transaction.description,
+                "destination_account": to_requestor_account_bank.bank_account_number,
+                "transfer_amount": f'{transfer_amount:.2f}',
+                # .format(transfer_amount)), #Decimal(transfer_amount, round(2))),
+                "currency_type": "CLP",
+                "paysheet_line_type": "requestor",
+                "bank_code": to_requestor_account_bank.bank_code
+            }
+
+            sns.push(arn, attribute, payload)
+            self.log.info("SNS Push  payload RequestorPayment Services to SNS_TREASURY_PAYSHEET")
+
+
+
         # sqs = SqsService(json_data={
         #     "origin_account": from_account_bank.bank_account_number,
         #     "beneficiary_name": to_requestor_account_bank.account_holder_name,
@@ -181,6 +213,7 @@ class RequesterPaymentFromOperation(Service):
 
         # Send SNS to confirm the payment (to financing)
         if SEND_AWS_SNS:
+
             sns = SnsServiceLibrary()
             sns_topic = generate_sns_topic(settings.SNS_LOAN_PAYMENT)
             arn = sns.get_arn_by_name(sns_topic)

@@ -62,12 +62,32 @@ class InstalmentPayment(Service):
             #TODO: Implementar SNS, verificar cual es y como esta configurado su comportamiento
 
             if SEND_AWS_SNS:
-                sqs = SqsService(json_data={
-                    "result": "NOT-OK",
-                    "operation_id": external_operation_id,
-                    "instalments": list_validation_payment_error
-                })
-                sqs.push('sqs_account_engine_instalment_payment_notification')
+                # sqs = SqsService(json_data={
+                #     "result": "NOT-OK",
+                #     "operation_id": external_operation_id,
+                #     "instalments": list_validation_payment_error
+                # })
+                # sqs.push('sqs_account_engine_instalment_payment_notification')
+
+
+                self.log.info("start SEND_AWS_SNS")
+                sns = SnsServiceLibrary()
+
+                sns_topic = generate_sns_topic(settings.SNS_INVESTMENT_PAYMENT)
+
+                arn = sns.get_arn_by_name(sns_topic)
+                attribute = sns.make_attributes(entity=investor_type, type='response', status='success')
+
+                payload = {
+                    "message": "OK",
+                    "investment_id": investment_id,
+                }
+                sns.push(arn, attribute, payload)
+                self.log.info("SNS Push  payload SEND_AWS_SNS")
+                self.log.info(str(payload))
+
+            else:
+                self.log.info("Sin envio a SEND_AWS_SNS")
 
 
 

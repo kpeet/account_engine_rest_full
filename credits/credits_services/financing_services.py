@@ -213,7 +213,7 @@ class FinanceOperationByInvestmentTransaction(Service):
         # Send SNS to confirm the payment (to financing)
 
         if SEND_AWS_SNS:
-            self.log.info("start SEND_AWS_SNS")
+            self.log.info("SNS start Financing Services to SNS_INVESTMENT_PAYMENT")
             sns = SnsServiceLibrary()
 
             sns_topic = generate_sns_topic(settings.SNS_INVESTMENT_PAYMENT)
@@ -226,11 +226,11 @@ class FinanceOperationByInvestmentTransaction(Service):
                 "investment_id": investment_id,
             }
             sns.push(arn, attribute, payload)
-            self.log.info("SNS Push  payload SEND_AWS_SNS")
+            self.log.info("SNS Push  payload Financing Services to SNS_INVESTMENT_PAYMENT")
             self.log.info(str(payload))
 
         else:
-            self.log.info("Sin envio a SEND_AWS_SNS")
+            self.log.info("Sin envio Financing Services to SNS_INVESTMENT_PAYMENT")
         #########################################################################################################################
         #########################################################################################################################
         #########################################################################################################################
