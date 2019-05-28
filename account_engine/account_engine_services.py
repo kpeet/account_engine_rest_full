@@ -85,6 +85,61 @@ class CreateJournalService(Service):
         return journal
 
 
+class AddPostingToJournalService(Service):
+    journal_id = forms.IntegerField(required=True)
+    from_account_id = forms.IntegerField(required=True)
+    to_account_id = forms.IntegerField(required=True)
+    asset_type = forms.IntegerField(required=True)
+    total_amount = forms.DecimalField(required=True)
+
+    def clean(self):
+        total_cost = 0
+        cleaned_data = super().clean()
+        journal_id = cleaned_data.get('journal_id')
+        from_account_id = cleaned_data.get('from_account_id')
+        to_account_id = cleaned_data.get('to_account_id')
+
+        try:
+            Journal.objects.get(id=journal_id)
+            Account.objects.get(id=from_account_id)
+            Account.objects.get(id=to_account_id)
+        except Exception as e:
+            raise forms.ValidationError(str(e))
+
+        # TODO: VALIDAR QUE TIENE LOS MONTOS LA CUENTA DE DONDE PROVIENEN LOS INGRESOS
+
+    def process(self):
+        journal_id = self.cleaned_data['journal_id']
+        from_account_id = self.cleaned_data['from_account_id']
+        to_account_id = self.cleaned_data['to_account_id']
+        asset_type = self.cleaned_data['asset_type']
+        total_amount = self.cleaned_data['total_amount']
+
+
+        # Creacion de asiento
+        journal = Journal.objects.get(id=journal_id)
+
+        # Descuento a la cuenta del inversionista
+        posting_from = Posting.objects.create(account_id=from_account_id, asset_type_id=asset_type, journal=journal,
+                                              amount=(Decimal(total_amount) * -1))
+
+        # Asignacion de inversionista a operacion
+        posting_to = Posting.objects.create(account_id=to_account_id, asset_type_id=asset_type, journal=journal,
+                                            amount=Decimal(total_amount))
+
+        UpdateBalanceAccountService.execute(
+            {
+                'account_id': from_account_id
+            }
+        )
+        UpdateBalanceAccountService.execute(
+            {
+                'account_id': to_account_id
+            }
+        )
+
+        return journal
+
 class RealToVirtualDepositService(Service):
     real_account_id = forms.IntegerField(required=True)
     virtual_account_id = forms.IntegerField(required=True)

@@ -8,7 +8,7 @@ router = DefaultRouter()
 # CAPA DE DATOS MOTOR DE CUENTAS
 router.register(r'accounts', AccountViewSet)
 
-router.register(r'operation_account', OperationAccountViewSet)
+#router.register(r'operation_account', OperationAccountViewSet)
 router.register(r'account_type', AccountTypeViewSet)
 router.register(r'journals', JournalViewSet)
 router.register(r'journal_transaction_type', JournalTransactionTypeViewSet)

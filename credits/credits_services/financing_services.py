@@ -28,8 +28,6 @@ class FinanceOperationByInvestmentTransaction(Service):
     external_operation_id = forms.IntegerField(required=True)
     asset_type = forms.IntegerField(required=True)
 
-
-
     def clean(self):
         self.log.info("FinanceOperationByInvestmentTransaction:: clean start")
         total_cost = 0
@@ -193,7 +191,13 @@ class FinanceOperationByInvestmentTransaction(Service):
                 'account_id': from_account.id
             }
         )
+        UpdateBalanceAccountService.execute(
+            {
+                'account_id': to_operation_account.id
+            }
+        )
         self.log.info("Update Account Balance account_id:"+str(from_account.id))
+        self.log.info("Update Account Balance account_id:"+str(to_operation_account.id))
 
         # if settings.DEBUG and settings.DEBUG != True:
 
