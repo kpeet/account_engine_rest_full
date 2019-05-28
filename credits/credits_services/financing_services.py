@@ -13,6 +13,7 @@ from sns_sqs_services.services import SnsService as SnsServiceLibrary
 from core_account_engine.utils import generate_sns_topic
 from django.conf import settings
 from .helper_services import CUMPLO_COST_ACCOUNT, SEND_AWS_SNS
+import logging
 
 
 class FinanceOperationByInvestmentTransaction(Service):
@@ -29,6 +30,7 @@ class FinanceOperationByInvestmentTransaction(Service):
 
 
     def clean(self):
+        logging.getLogger("info_logger").info("FinanceOperationByInvestmentTransaction:: clean")
         total_cost = 0
         cleaned_data = super().clean()
         investment_id = cleaned_data.get('investment_id')
@@ -63,6 +65,8 @@ class FinanceOperationByInvestmentTransaction(Service):
             print(str(investor_amount_to_pay.balance_account_amount))
 
             print("Flag 2")
+
+
             if investor_amount_to_pay.balance_account_amount is not None and investor_amount_to_pay.balance_account_amount >= Decimal(
                     cleaned_data.get('investment_amount') + total_cost):
                 print("Flag 3")

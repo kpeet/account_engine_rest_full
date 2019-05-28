@@ -38,7 +38,6 @@ class CreditsOperationViewSet(ViewSet):
         serializer = CreditOperationSerializer(user)
         return Response(serializer.data)
 
-
     @action(detail=False,methods=['post'] )
     def financing_credit_operation(self, request):
         like_api = True

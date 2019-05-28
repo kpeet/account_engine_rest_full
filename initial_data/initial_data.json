@@ -84,7 +84,17 @@
       "updated_at": "2018-11-14T23:24:16.038Z"
       }
   },
-
+   {
+      "model": "account_engine.Account",
+      "pk": 3,
+      "fields": {
+      "name": "Cumplo Costos",
+      "external_account_id": 3,
+      "external_account_type": 4,
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z"
+      }
+  },
   {
     "model": "account_engine.JournalTransactionType",
     "pk": 1,
@@ -152,6 +162,54 @@
       "created_at": "2018-11-14T23:24:16.038Z",
       "updated_at": "2018-11-14T23:24:16.038Z",
       "description": "Instruccion de pago a Inversionistas"
+
+    }
+  },
+  {
+    "model": "account_engine.BankAccount",
+    "pk": 1,
+    "fields": {
+      "account_id": 1,
+      "bank_account_number": "000074134556",
+      "account_notification_email": "it@cumplo.com",
+      "bank_code": 37,
+      "account_bank_type": 4,
+      "account_holder_name": "Cumplo Asesorias",
+      "account_holder_document_number": "1534549164",
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z"
+
+    }
+  },
+  {
+    "model": "account_engine.BankAccount",
+    "pk": 2,
+    "fields": {
+      "account_id": 2,
+      "bank_account_number": "000074134556",
+      "account_notification_email": "it@cumplo.com",
+      "bank_code": 37,
+      "account_bank_type": 4,
+      "account_holder_name": "Cumplo Operaciones",
+      "account_holder_document_number": "1534549164",
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z"
+
+    }
+  },
+  {
+    "model": "account_engine.BankAccount",
+    "pk": 3,
+    "fields": {
+      "account_id": 3,
+      "bank_account_number": "000074134556",
+      "account_notification_email": "it@cumplo.com",
+      "bank_code": 37,
+      "account_bank_type": 4,
+      "account_holder_name": "Cumplo Costos",
+      "account_holder_document_number": "1534549164",
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z"
 
     }
   }
