@@ -18,6 +18,7 @@ import logging
 
 class FinanceOperationByInvestmentTransaction(Service):
     TRANSACTION_TYPE=4
+    log = logging.getLogger("info_logger")
 
     account = forms.IntegerField(required=True)
     investment_id = forms.IntegerField(required=True)
@@ -30,7 +31,7 @@ class FinanceOperationByInvestmentTransaction(Service):
 
 
     def clean(self):
-        logging.getLogger("info_logger").info("FinanceOperationByInvestmentTransaction:: clean")
+        self.log.info("FinanceOperationByInvestmentTransaction:: clean start")
         total_cost = 0
         cleaned_data = super().clean()
         investment_id = cleaned_data.get('investment_id')
@@ -52,6 +53,7 @@ class FinanceOperationByInvestmentTransaction(Service):
             JournalTransactionType.objects.filter(id=FinanceOperationByInvestmentTransaction.TRANSACTION_TYPE)
 
             investor_account = Account.objects.get(id=investor_account_id)
+
 
             ####################################################################################################################################
             ####################################################################################################################################
@@ -84,6 +86,7 @@ class FinanceOperationByInvestmentTransaction(Service):
             print(str(len(list_validation_investment_error)))
 
             if len(list_validation_investment_error) > 0:
+                self.log.info("FinanceOperationByInvestmentTransaction:: clean Fail Validation")
 
                 #######################################################################################################
                 #######################################################################################################
@@ -99,17 +102,27 @@ class FinanceOperationByInvestmentTransaction(Service):
                     raise ValueError("Investor Type Error")
                 print("Flag 5")
                 if SEND_AWS_SNS:
+
+
+
+                    #######################################################################################################
+                    #######################################################################################################
+                    #######################################################################################################
+                    #######################################################################################################
+
+
                     sns = SnsServiceLibrary()
-                    sns_topic = generate_sns_topic(settings.SNS_INVESTMENT_PAYMENT)
-                    arn = sns.get_arn_by_name(sns_topic)
+
+                    #attribute = sns.make_attributes(investor_type, "response", "fail")
                     attribute = sns.make_attributes(entity=investor_type, type='response', status='fail')
 
+                    arn = sns.get_arn_by_name(settings.SNS_INVESTMENT_PAYMENT)
                     payload = {
                         "message": str(list_validation_investment_error),
                         "investment_id": investment_id,
                     }
-                    # TODO: VER TEMA ARN
-                    sns.push('arn:aws:sns:us-east-1:002311116463:cl-staging-investment-payment', attribute, payload)
+
+                    sns.push(arn, attribute, payload)
 
                 #######################################################################################################
                 #######################################################################################################
@@ -121,10 +134,12 @@ class FinanceOperationByInvestmentTransaction(Service):
         except Exception as e:
             raise forms.ValidationError(str(e))
 
+        self.log.info("FinanceOperationByInvestmentTransaction:: clean OK")
+
         return cleaned_data
 
     def process(self):
-        print("FLAG PROCESS 1")
+        self.log.info("FinanceOperationByInvestmentTransaction:: process start")
         transaction_type = FinanceOperationByInvestmentTransaction.TRANSACTION_TYPE  # Financiamiento de operación por Inversión
         # Get Data
         account = self.cleaned_data['account']
@@ -152,7 +167,6 @@ class FinanceOperationByInvestmentTransaction(Service):
         asset_type = AssetType.objects.get(id=asset_type)
         # Traigo la cuenta de cumplo asesorias
         cumplo_cost_account = Account.objects.get(id=CUMPLO_COST_ACCOUNT)
-        print("FLAG 5")
 
         # Creacion de asiento
         journal = Journal.objects.create(batch=None, gloss=journal_transaction.description,
@@ -174,12 +188,13 @@ class FinanceOperationByInvestmentTransaction(Service):
         ################################################################################################################
         ################################################################################################################
         ################################################################################################################
-        print("FLAG 6")
         UpdateBalanceAccountService.execute(
             {
                 'account_id': from_account.id
             }
         )
+        self.log.info("Update Account Balance account_id:"+str(from_account.id))
+
         # if settings.DEBUG and settings.DEBUG != True:
 
         #########################################################################################################################
@@ -196,7 +211,9 @@ class FinanceOperationByInvestmentTransaction(Service):
             raise ValueError("Investor Type Error")
 
         # Send SNS to confirm the payment (to financing)
+
         if SEND_AWS_SNS:
+            self.log.info("start SEND_AWS_SNS")
             sns = SnsServiceLibrary()
 
             sns_topic = generate_sns_topic(settings.SNS_INVESTMENT_PAYMENT)
@@ -208,9 +225,12 @@ class FinanceOperationByInvestmentTransaction(Service):
                 "message": "OK",
                 "investment_id": investment_id,
             }
-            # TODO: VER TEMA ARN
-            sns.push('arn:aws:sns:us-east-1:002311116463:cl-staging-investment-payment', attribute, payload)
+            sns.push(arn, attribute, payload)
+            self.log.info("SNS Push  payload SEND_AWS_SNS")
+            self.log.info(str(payload))
 
+        else:
+            self.log.info("Sin envio a SEND_AWS_SNS")
         #########################################################################################################################
         #########################################################################################################################
         #########################################################################################################################
