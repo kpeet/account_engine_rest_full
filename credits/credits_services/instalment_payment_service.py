@@ -56,54 +56,38 @@ class InstalmentPayment(Service):
 
         if len(list_validation_payment_error) > 0:
 
-            ############################################################################
-            ############################################################################
-            ############################################################################
-            #TODO: Implementar SNS, verificar cual es y como esta configurado su comportamiento
 
             if SEND_AWS_SNS:
-                # sqs = SqsService(json_data={
-                #     "result": "NOT-OK",
-                #     "operation_id": external_operation_id,
-                #     "instalments": list_validation_payment_error
-                # })
-                # sqs.push('sqs_account_engine_instalment_payment_notification')
-
 
                 self.log.info("start SEND_AWS_SNS")
                 sns = SnsServiceLibrary()
 
-                sns_topic = generate_sns_topic(settings.SNS_INVESTMENT_PAYMENT)
+                sns_topic = generate_sns_topic(settings.SNS_INSTALMENT_PAYMENT)
 
                 arn = sns.get_arn_by_name(sns_topic)
-                attribute = sns.make_attributes(entity=investor_type, type='response', status='success')
+                attribute = sns.make_attributes(
+                    type='response', status='fail')
 
                 payload = {
-                    "message": "OK",
-                    "investment_id": investment_id,
+                    "result": "NOT-OK",
+                    "operation_id": external_operation_id,
+                    "instalments": list_validation_payment_error
                 }
                 sns.push(arn, attribute, payload)
+
                 self.log.info("SNS Push  payload SEND_AWS_SNS")
                 self.log.info(str(payload))
 
             else:
                 self.log.info("Sin envio a SEND_AWS_SNS")
 
-
-
-            ############################################################################
-            ############################################################################
-            ############################################################################
-
             raise forms.ValidationError(list_validation_payment_error)
         else:
             return cleaned_data
 
     def process(self):
-        # TODO: modificar este valor en duro
-
         transaction_type = 6  # Pago de cuotas
-        # Get Data
+        # Init Data
         instalments_ok_for_notification = []
         for instalment in self.cleaned_data['instalment_list_to_pay']:
             payer_account_id = instalment.cleaned_data['payer_account_id']
@@ -114,32 +98,23 @@ class InstalmentPayment(Service):
             pay_date = instalment.cleaned_data['pay_date']
             asset_type = instalment.cleaned_data['asset_type']
 
-
-
             # Get and Process Data
-            # TODO: definir transacción de Pago a solicitante
             journal_transaction = JournalTransactionType.objects.get(id=transaction_type)
             to_operation_account = CreditOperation.objects.get(external_account_id=external_operation_id)
             from_payer_account = Account.objects.get(id=payer_account_id)
-
             asset_type = AssetType.objects.get(id=asset_type)
 
-            # ACCOUNT common
-            ################################################################################################################
-            ################################################################################################################
-            ################################################################################################################
-            ################################################################################################################
 
             # Creacion de Posting
             try:
                 create_journal_input = {
-                        'transaction_type_id': journal_transaction.id,
-                        'from_account_id': from_payer_account.id,
-                        'to_account_id': to_operation_account.id,
-                        'asset_type': asset_type,
-                        'total_amount': Decimal(instalment_amount + fine_amount),
-                    }
-                CreateJournalService.execute(create_journal_input)
+                    'transaction_type_id': journal_transaction.id,
+                    'from_account_id': from_payer_account.id,
+                    'to_account_id': to_operation_account.id,
+                    'asset_type': asset_type,
+                    'total_amount': Decimal(instalment_amount + fine_amount),
+                }
+                journal = CreateJournalService.execute(create_journal_input)
 
                 instalments_ok_for_notification.append(
                     {
@@ -147,52 +122,34 @@ class InstalmentPayment(Service):
                         "id": instalment_id
                     }
                 )
+
                 ############################################################################
                 # TODO: Implementar SNS, verificar cual es y como esta configurado su comportamiento
                 if SEND_AWS_SNS:
-                    sqs = SqsService(json_data={
+
+                    self.log.info("start SEND_AWS_SNS")
+                    sns = SnsServiceLibrary()
+
+                    sns_topic = generate_sns_topic(settings.SNS_INSTALMENT_PAYMENT)
+
+                    arn = sns.get_arn_by_name(sns_topic)
+                    attribute = sns.make_attributes(
+                        type='response', status='success')
+
+                    payload = {
                         "result": "OK",
                         "operation_id": external_operation_id,
                         "instalments": instalments_ok_for_notification,
-                    })
-                    sqs.push('sqs_account_engine_instalment_payment_notification')
-                ############################################################################
-                ############################################################################
-                ############################################################################
+                    }
+                    sns.push(arn, attribute, payload)
+
+                    self.log.info("SNS Push  payload SEND_AWS_SNS")
+                    self.log.info(str(payload))
+
+                else:
+                    self.log.info("Sin envio a SEND_AWS_SNS")
 
                 return model_to_dict(journal_transaction)
             except Exception as e:
                 raise e
 
-            # journal = Journal.objects.create(batch=None, gloss=journal_transaction.description,
-            #                                  journal_transaction=journal_transaction)
-            #
-            # # Descuento a la cuenta de operacion por el monto total
-            # posting_from = Posting.objects.create(account=from_payer_account, asset_type=asset_type, journal=journal,
-            #                                       amount=(Decimal(instalment_amount + fine_amount) * -1))
-            #
-            # # Asignacion de inversionista a operacion
-            # posting_to = Posting.objects.create(account=to_operation_account, asset_type=asset_type, journal=journal,
-            #                                     amount=Decimal(instalment_amount + fine_amount))
-            #
-            # UpdateBalanceAccountService.execute(
-            #     {
-            #         'account_id': from_payer_account.id
-            #     }
-            # )
-            # UpdateBalanceAccountService.execute(
-            #     {
-            #         'account_id': to_operation_account.id
-            #     }
-            # )
-
-            # ACCOUNT common
-            ################################################################################################################
-            ################################################################################################################
-            ################################################################################################################
-            ################################################################################################################
-
-
-
-        ############################################################################
-        ############################################################################
