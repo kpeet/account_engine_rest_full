@@ -152,8 +152,10 @@ class RequesterPaymentFromOperation(Service):
 
         # AWS SNS Notification
         #######################
+        #Envio a Paysheet
         self.send_AWS_SNS_Treasury(to_requester_account=to_requester_account, cumplo_operation_bank_account=cumplo_operation_bank_account, transfer_amount=transfer_amount)
 
+        #Notificacion de Nevio a paysheet a LOANS
         self.send_aws_sns_to_loans(external_operation_id=external_operation_id)
 
         return model_to_dict(journal)

@@ -9,7 +9,7 @@ from account_engine.account_engine_services import AddPostingToJournalService
 ################################################################################################################
 
 CUMPLO_COST_ACCOUNT = 1
-SEND_AWS_SNS = False
+SEND_AWS_SNS = True
 
 
 def costTransaction(transaction_cost_list, journal, asset_type, from_account):

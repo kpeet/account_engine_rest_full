@@ -132,4 +132,16 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 # Static PATH
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 STATIC_URL = '/static/'
+AWS_REGION_NAME = os.environ.get('AWS_REGION_NAME')
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID_TREASURY')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY_TREASURY')
+TREASURY_SQS_URL = os.environ.get('TREASURY_SQS_URL')
+AWS_REGION_VIRGINIA = os.environ.get('AWS_REGION_VIRGINIA')
+AWS_REGION_OHIO = os.environ.get('AWS_REGION_OHIO')
+
+# AWS SNS Topics
+SNS_COUNTRY_PREFIX = os.environ.get('SNS_COUNTRY_PREFIX')
+SNS_ENV_PREFIX = os.environ.get('SNS_ENV_PREFIX')
+SNS_LOAN_PAYMENT = os.environ.get('SNS_LOAN_PAYMENT')
+SNS_TREASURY_PAYSHEET = os.environ.get('SNS_TREASURY_PAYSHEET_REGISTRY')
 

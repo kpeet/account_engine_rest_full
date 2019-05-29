@@ -1,5 +1,7 @@
 from django import forms
 from service_objects.fields import MultipleFormField
+from ..models import CreditOperation, Instalment
+
 
 
 class BillinPropertiesForm(forms.Field):
@@ -35,19 +37,27 @@ class CostForm(forms.Form):
 
 
 class InstalmentsForms(forms.Form):
+
     def validate_unique_instalment(self, value):
-        def validate_external_operation_id(self, value):
-            """
-                   Check that the blog post is about Django.
-                   """
-            operation = CreditOperation.objects.filter(external_account_id=value)
-            if operation.exists():
-                return value
-            raise ValidationError("la operación no existe")
+
+        operation = Instalment.objects.filter(external_instalment_id=value)
+        if operation.exists():
+            return value
+            raise forms.ValidationError("la operación no existe")
+
+
+    def validate_external_operation_id(self, value):
+        """
+               Check that the blog post is about Django.
+               """
+        operation = CreditOperation.objects.filter(external_account_id=value)
+        if operation.exists():
+            return value
+            raise forms.ValidationError("la operación no existe")
 
     payer_account_id = forms.IntegerField(required=True)
     external_operation_id = forms.IntegerField(required=True)
-    instalment_id = forms.IntegerField(required=True, validators=[validate_unique_instalment])
+    instalment_id = forms.IntegerField(required=True,)# validators=[validate_unique_instalment])
     instalment_amount = forms.DecimalField(required=True)  # Capital más interés
     fine_amount = forms.DecimalField(required=True)  # Multa
     pay_date = forms.DateField(required=True)

@@ -6,7 +6,7 @@ from rest_framework import status
 from service_objects.errors import InvalidInputsError
 
 from .models import InvestmentCreditOperation, CreditsCost, CreditOperation
-from .serializers import InvestmentCreditOperationSerializer, FinancingCreditOperationSerializer, CostSerializer, Cost2Serializer, CreditOperationSerializer,CreditOperationSerializer2, RequestorPaymentSerializer, InstalmentPaymentSerializer, InvestorPaymentFromOperation
+from .serializers import InvestmentCreditOperationSerializer, FinancingCreditOperationSerializer, CostSerializer, Cost2Serializer, CreditOperationSerializer,CreditOperationSerializer2, RequestorPaymentSerializer, InstalmentPaymentSerializer, JournalInvestorPaymentFromInstalmentOperationSerializer
 
 class InvestmentCostViewSet(ModelViewSet):
     queryset = CreditsCost.objects.all()
@@ -98,6 +98,7 @@ class CreditsOperationViewSet(ViewSet):
     def payment_instalment(self, request):
         like_api = True
         PROCESS_DATA_OK_FOR_SNS = "OK"
+        print("ENVIANDO InstalmentPaymentSerializer")
         serializer = InstalmentPaymentSerializer(data=request.data)
         try:
             if serializer.is_valid():
@@ -126,7 +127,7 @@ class CreditsOperationViewSet(ViewSet):
     def investor_payment_from_instalment(self, request):
         like_api = True
         PROCESS_DATA_OK_FOR_SNS = "OK"
-        serializer = InvestorPaymentFromOperation(data=request.data)
+        serializer = JournalInvestorPaymentFromInstalmentOperationSerializer(data=request.data)
         try:
             if serializer.is_valid():
                 serializer.save()

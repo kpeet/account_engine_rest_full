@@ -221,6 +221,7 @@ class FinanceOperationByInvestmentTransaction(Service):
                 "investment_id": investment_id,
             }
             sns.push(arn, attribute, payload)
+
             self.log.info("SNS Push  payload Financing Services to SNS_INVESTMENT_PAYMENT")
             self.log.info(str(payload))
 

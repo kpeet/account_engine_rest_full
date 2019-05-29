@@ -6,8 +6,9 @@ from .credits_services.financing_services import FinanceOperationByInvestmentTra
 from .credits_services.requestor_payment_service import RequesterPaymentFromOperation
 from .credits_services.instalment_payment_service import InstalmentPayment
 from .credits_services.investment_instalment_payment_services import InvestorPaymentFromOperation
+import logging
 
-ASSET_TYPE=1
+ASSET_TYPE = 1
 
 
 class InvestmentCreditOperationSerializer(serializers.ModelSerializer):
@@ -45,12 +46,14 @@ class BillingPropertiesSerializers(serializers.Serializer):
 
     billable = serializers.BooleanField(required=True)
     billing_entity = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    #TODO: TAX, validar con Barbara si es necesario este campo para presentación de info en datos de Facturación
+    # TODO: TAX, validar con Barbara si es necesario este campo para presentación de info en datos de Facturación
+
 
 class Cost2Serializer(serializers.ModelSerializer):
     class Meta:
         model = CreditsCost
         fields = '__all__'
+
 
 class CostSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
@@ -78,12 +81,10 @@ class FinancingCreditOperationSerializer(serializers.Serializer):
 
     def create(self, validated_data):
 
-
         investor_account = Account.objects.get(external_account_id=validated_data['investor_account_id'],
                                                external_account_type_id=validated_data['investor_account_type'])
 
         try:
-
 
             print("investor_account")
             print(str(investor_account))
@@ -106,10 +107,9 @@ class FinancingCreditOperationSerializer(serializers.Serializer):
         except Exception as e:
             raise e
 
+
 def costTransaction(transaction_cost_list, payment_cost_account, journal, asset_type):
-
     for requester_cost in transaction_cost_list:
-
         # Descuento a la cuenta de operacion por el monto total
         cumplo_operation_asesorias = Account.objects.get(external_account_type_id=4, external_account_id=
         requester_cost.cleaned_data['account_engine_properties']['destination_account']['id'])
@@ -123,12 +123,12 @@ def costTransaction(transaction_cost_list, payment_cost_account, journal, asset_
 class CreditOperationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CreditOperation
-        fields = ('id', 'financing_amount', 'requestor_account', 'external_account_id','external_account_type_id')
+        fields = ('id', 'financing_amount', 'requestor_account', 'external_account_id', 'external_account_type_id')
         read_only_fields = ('state',)
 
 
 class CreditOperationSerializer2(serializers.Serializer):
-    EXTERNAL_REQUESTOR_ACCOUNT_TYPE=2
+    EXTERNAL_REQUESTOR_ACCOUNT_TYPE = 2
 
     operation_id = serializers.CharField(required=True, source='external_account_id', max_length=150)
     financing_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=2)
@@ -140,7 +140,8 @@ class CreditOperationSerializer2(serializers.Serializer):
             Account.objects.get(external_account_id=data['requester_account_id'],
                                 external_account_type_id=CreditOperationSerializer2.EXTERNAL_REQUESTOR_ACCOUNT_TYPE)
 
-            operation = CreditOperation.objects.filter(external_account_id = data['external_account_id'], external_account_type_id=CreditOperation.ACCOUNT_TYPE)
+            operation = CreditOperation.objects.filter(external_account_id=data['external_account_id'],
+                                                       external_account_type_id=CreditOperation.ACCOUNT_TYPE)
             if operation.exists():
                 raise serializers.ValidationError("operation_id ya ingresado")
 
@@ -158,10 +159,10 @@ class CreditOperationSerializer2(serializers.Serializer):
 
         name = "Operacion " + str(validated_data['requester_account_id'])
         create_operation = CreditOperation.objects.create(external_account_id=validated_data['external_account_id'],
-                                                           name=name,
-                                                           requestor_account=requester,
-                                                           financing_amount=validated_data['financing_amount'],
-                                                           external_account_type_id=CreditOperation.ACCOUNT_TYPE)
+                                                          name=name,
+                                                          requestor_account=requester,
+                                                          financing_amount=validated_data['financing_amount'],
+                                                          external_account_type_id=CreditOperation.ACCOUNT_TYPE)
         return create_operation
 
     def update(self, instance, validated_data):
@@ -204,10 +205,8 @@ class FinancingCreditOperationSerializer(serializers.Serializer):
             raise e
 
 
-
-
 class RequestorPaymentSerializer(serializers.Serializer):
-    #TODO: ASSET TYPE DEBE SER DEFINIDO EN ALGUN PUNTO PARA DIFERENCIAS INGRESOS CON OTROS TIPOS DE MONEDA
+    # TODO: ASSET TYPE DEBE SER DEFINIDO EN ALGUN PUNTO PARA DIFERENCIAS INGRESOS CON OTROS TIPOS DE MONEDA
 
     def positive_number(value):
         if value < Decimal(0):
@@ -230,8 +229,6 @@ class RequestorPaymentSerializer(serializers.Serializer):
             requester_account = Account.objects.get(external_account_id=data['requester_account_id'],
                                                     external_account_type_id=data['requester_account_type'])
 
-
-
             bank_account = BankAccount.objects.filter(account=requester_account)[0:1].get()
 
         except BankAccount.DoesNotExist as e:
@@ -252,7 +249,7 @@ class RequestorPaymentSerializer(serializers.Serializer):
                 "total_amount": validated_data['total_amount'],
                 "transfer_amount": validated_data['transfer_amount'],
                 "external_operation_id": validated_data['external_operation_id'],
-                "asset_type": RequestorPaymentSerializer.ASSET_TYPE ,
+                "asset_type": RequestorPaymentSerializer.ASSET_TYPE,
                 "requester_costs": validated_data['requester_cost']
             }
         )
@@ -268,10 +265,7 @@ class InstalmentPaymentSerializers(serializers.Serializer):
         pass
 
     def create(self, validated_data):
-
-
-
-
+        print("Flag 2")
         return validated_data
 
     payer_account_id = serializers.IntegerField(required=True)
@@ -290,6 +284,7 @@ class InstalmentPaymentSerializer(serializers.Serializer):
         pass
 
     def create(self, validated_data):
+        print("Flag 3")
         instalments = validated_data['instalments']
         instalment_list_to_services = []
         for instalment in instalments:
@@ -304,16 +299,16 @@ class InstalmentPaymentSerializer(serializers.Serializer):
 
             instalment_list_to_services.append(
                 {
-                    "payer_account_id":payer_account.id,
-                    "external_operation_id":external_operation_id,
-                    "instalment_id":instalment_id,
-                    "instalment_amount":instalment_amount,
-                    "fine_amount":fine_amount,
+                    "payer_account_id": payer_account.id,
+                    "external_operation_id": external_operation_id,
+                    "instalment_id": instalment_id,
+                    "instalment_amount": instalment_amount,
+                    "fine_amount": fine_amount,
                     "pay_date": pay_date,
                     "asset_type": 1
                 }
             )
-
+        print("Flag 4")
         requester_payment_from_operation = InstalmentPayment.execute(
             {
                 "instalment_list_to_pay": instalment_list_to_services,
@@ -322,7 +317,6 @@ class InstalmentPaymentSerializer(serializers.Serializer):
         )
 
         return requester_payment_from_operation
-
 
 
 class PaymentToInvestor(serializers.Serializer):
@@ -341,7 +335,7 @@ class PaymentToInvestor(serializers.Serializer):
 
 
 class JournalInvestorPaymentFromInstalmentOperationSerializer(serializers.Serializer):
-
+    log = logging.getLogger("info_logger")
 
     def positive_number(value):
         if value < Decimal(0):
@@ -351,33 +345,36 @@ class JournalInvestorPaymentFromInstalmentOperationSerializer(serializers.Serial
         """
                Check that the blog post is about Django.
                """
+
+        print("validate_external_operation_id")
+        print(value)
         operation = CreditOperation.objects.filter(external_account_id=value)
         if operation.exists():
             return value
         raise serializers.ValidationError("la operación no existe")
 
     instalment_id = serializers.IntegerField(required=True)
-    instalment_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=2, validators=[positive_number])
-    external_operation_id = serializers.IntegerField(required=True, validators=[validate_external_operation_id])
+    instalment_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=2,
+                                                 validators=[positive_number])
+    external_operation_id = serializers.IntegerField(required=True, )
     investors = PaymentToInvestor(many=True, required=True)
 
     def create(self, validated_data):
+
         # requester_account = Account.objects.get(external_account_id=validated_data['requester_account_id'],
         #                                         external_account_type_id=validated_data['requester_account_type'])
+        print("external_operation_id")
+        print(str(validated_data['external_operation_id']))
 
-        operation = CreditOperation.objects.get(external_account_id=validated_data['external_operation_id'])
-
-
-        new_instalment = Instalment()
-        new_instalment.amount = validated_data['instalment_amount']
-        new_instalment.id = validated_data['instalment_id']
-        new_instalment.operation = operation
+        self.log.info("SEND TO InvestorPaymentFromOperation SERVICE" + str(validated_data['external_operation_id']))
 
         requester_payment_from_operation = InvestorPaymentFromOperation.execute(
             {
-                "instalment": new_instalment,
+                "external_credit_operation_id": validated_data['external_operation_id'],
+                "instalment_amount": validated_data['instalment_amount'],
+                "instalment_id": validated_data['instalment_id'],
                 "investors": validated_data['investors'],
-                "asset_type" : ASSET_TYPE
+                "asset_type": ASSET_TYPE
             }
         )
 
@@ -385,4 +382,3 @@ class JournalInvestorPaymentFromInstalmentOperationSerializer(serializers.Serial
 
     def update(self, instance, validated_data):
         pass
-

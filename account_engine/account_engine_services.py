@@ -28,6 +28,7 @@ class UpdateBalanceAccountService(Service):
 
 
 class CreateJournalService(Service):
+    print("CreateJournalService")
     transaction_type_id = forms.IntegerField(required=True)
     from_account_id = forms.IntegerField(required=True)
     to_account_id = forms.IntegerField(required=True)
