@@ -12,7 +12,7 @@ class AccountTransactionServiceTest(TestCase):
 
     def setUp(self):
         journal_transaction = JournalTransactionType.objects.create(description="TEST")
-        asset_type = AssetType.objects.create(description='CL')
+        asset_type = AssetType.objects.create(description='CLP')
 
     def test_text_content(self):
         account_type = AccountType.objects.create(account_type=2)
@@ -28,7 +28,7 @@ class AccountTransactionServiceTest(TestCase):
 
     def test__journal_service_and_balance(self):
         journal_transaction = JournalTransactionType.objects.get(description="TEST")
-        asset_type = AssetType.objects.get(description='CL')
+        asset_type = AssetType.objects.get(description='CLP')
         account_type = AccountType.objects.create(account_type=2)
         to_account = Account.objects.create(external_account_id=123, external_account_type=account_type)
         from_account = Account.objects.create(external_account_id=1234, external_account_type=account_type,
@@ -67,7 +67,7 @@ class AccountTransactionServiceTest(TestCase):
         depost_date = "2018-10-10"
 
         journal_transaction = JournalTransactionType.objects.get(description="TEST")
-        asset_type = AssetType.objects.get(description='CL')
+        asset_type = AssetType.objects.get(description='CLP')
         account_type = AccountType.objects.create(account_type=account_type)
         to_account = Account.objects.create(external_account_id=from_external_account_id, external_account_type=account_type)
         # journal_transaction = JournalTransactionType.objects.get(id=1)

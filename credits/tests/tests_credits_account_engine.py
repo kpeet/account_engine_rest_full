@@ -29,7 +29,7 @@ class CreditsOperationServiceTest(TestCase):
 
         account_type = AccountType.objects.create(account_type=2)
         account_type_credits_operation = AccountType.objects.create(account_type=CreditOperation.ACCOUNT_TYPE)
-        asset_type = AssetType.objects.get(description='CL')
+        #asset_type = AssetType.objects.get(description='CLP')
 
         requestor_account=Account.objects.create(external_account_id=123, external_account_type=account_type, balance_account=0)
         investor_account=Account.objects.create(external_account_id=1234, external_account_type=account_type, balance_account=initial_balance_investor_account)

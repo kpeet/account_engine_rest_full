@@ -14,9 +14,25 @@ from core_account_engine.utils import generate_sns_topic
 from django.conf import settings
 from .helper_services import CUMPLO_COST_ACCOUNT, SEND_AWS_SNS
 import logging
+from account_engine.account_engine_services import CreateJournalService
 
 
 class FinanceOperationByInvestmentTransaction(Service):
+    """
+       Funcion de Financionamiento de Credito por Inversion:
+
+       Genera movimientos en cuentas T de Operacion/cuenta Inversionista/Costos .
+
+           Validaciones que implica la operacion de pagar al solicitane
+
+           1- que la operacion esté financiada
+
+           2- que la operacion tenga suficiente financiamiento para pagar al solicitante y todos los costos asociados
+
+           3- que los costos mas el monto a transferir sean iguales a el monto total de la transferencia
+
+           4- que los costos no sean mayor que el monto a transferir al solicitante
+       """
     TRANSACTION_TYPE=4
     log = logging.getLogger("info_logger")
 
@@ -57,22 +73,13 @@ class FinanceOperationByInvestmentTransaction(Service):
             ####################################################################################################################################
             ####################################################################################################################################ç
 
-            print("investor_account Flag 1")
-            print(investor_account)
             investor_amount_to_pay = DWHBalanceAccount.objects.get(account=investor_account)
-            print("investor_amount_to_pay")
-            print(str(investor_amount_to_pay))
-            print(str(investor_amount_to_pay.balance_account_amount))
-
-            print("Flag 2")
-
 
             if investor_amount_to_pay.balance_account_amount is not None and investor_amount_to_pay.balance_account_amount >= Decimal(
                     cleaned_data.get('investment_amount') + total_cost):
-                print("Flag 3")
+
                 pass
             else:
-                print("Flag 4")
                 investment_error = {
                     "message": 'El inversionista no tiene monto suficiente para pagar el monto de la inversion:' + str(
                         investment_id) + "- Monto Actual en cuenta inversionista:" + str(
@@ -80,8 +87,6 @@ class FinanceOperationByInvestmentTransaction(Service):
                 }
                 list_validation_investment_error.append(investment_error)
 
-            print("len(list_validation_investment_error)")
-            print(str(len(list_validation_investment_error)))
 
             if len(list_validation_investment_error) > 0:
                 self.log.info("FinanceOperationByInvestmentTransaction:: clean Fail Validation")
@@ -98,7 +103,6 @@ class FinanceOperationByInvestmentTransaction(Service):
                     investor_type = "enterprise"
                 else:
                     raise ValueError("Investor Type Error")
-                print("Flag 5")
                 if SEND_AWS_SNS:
 
 
@@ -139,7 +143,7 @@ class FinanceOperationByInvestmentTransaction(Service):
     def process(self):
         self.log.info("FinanceOperationByInvestmentTransaction:: process start")
         transaction_type = FinanceOperationByInvestmentTransaction.TRANSACTION_TYPE  # Financiamiento de operación por Inversión
-        # Get Data
+        # Init Data
         account = self.cleaned_data['account']
         investment_id = self.cleaned_data['investment_id']
         total_amount = self.cleaned_data['total_amount']
@@ -148,75 +152,62 @@ class FinanceOperationByInvestmentTransaction(Service):
         external_operation_id = self.cleaned_data['external_operation_id']
         asset_type = self.cleaned_data['asset_type']
 
+
         # Get and Process Data
-        # TODO: definir transacción de financimiento
-
-        # ACCOUNT common
-        ################################################################################################################
-        ################################################################################################################
-        ################################################################################################################
-        ################################################################################################################
-
         to_operation_account = CreditOperation.objects.get(external_account_id=external_operation_id)
-
         journal_transaction = JournalTransactionType.objects.get(id=transaction_type)
         from_account = Account.objects.get(id=account)
-
         asset_type = AssetType.objects.get(id=asset_type)
         # Traigo la cuenta de cumplo asesorias
         cumplo_cost_account = Account.objects.get(id=CUMPLO_COST_ACCOUNT)
 
-        # Creacion de asiento
-        journal = Journal.objects.create(batch=None, gloss=journal_transaction.description,
-                                         journal_transaction=journal_transaction)
 
-        # Descuento a la cuenta del inversionista
-        posting_from = Posting.objects.create(account=from_account, asset_type=asset_type, journal=journal,
-                                              amount=(Decimal(total_amount) * -1))
+        #
+        # # Creacion de asiento
+        # journal = Journal.objects.create(batch=None, gloss=journal_transaction.description,
+        #                                  journal_transaction=journal_transaction)
+        #
+        # # Descuento a la cuenta del inversionista
+        # posting_from = Posting.objects.create(account=from_account, asset_type=asset_type, journal=journal,
+        #                                       amount=(Decimal(total_amount) * -1))
+        #
+        # # Asignacion de inversionista a operacion
+        # posting_to = Posting.objects.create(account=to_operation_account, asset_type=asset_type, journal=journal,
+        #                                     amount=Decimal(investment_amount))
 
-        # Asignacion de inversionista a operacion
-        posting_to = Posting.objects.create(account=to_operation_account, asset_type=asset_type, journal=journal,
-                                            amount=Decimal(investment_amount))
 
-        # asignacion de inversionista a costos cumplo
+        # Posting Operation v/s Investor, T Accounts
+        ###########################################
+        create_journal_input = {
+            'transaction_type_id': journal_transaction.id,
+            'from_account_id': from_account.id,
+            'to_account_id': to_operation_account.id,
+            'asset_type': asset_type.id,
+            'total_amount': Decimal(investment_amount),
+        }
+        journal = CreateJournalService.execute(create_journal_input)
+
+        # POSTING inversionista v/s costos cumplo
         if investment_costs:
-            costTransaction(investment_costs, from_account, journal, asset_type)
+            costTransaction(transaction_cost_list=investment_costs, journal=journal, asset_type=asset_type,
+                            from_account=from_account)
 
-        ################################################################################################################
-        ################################################################################################################
-        ################################################################################################################
-        ################################################################################################################
-        UpdateBalanceAccountService.execute(
-            {
-                'account_id': from_account.id
-            }
-        )
-        UpdateBalanceAccountService.execute(
-            {
-                'account_id': to_operation_account.id
-            }
-        )
+        # TODO: definir transacción de financimiento
+
         self.log.info("Update Account Balance account_id:"+str(from_account.id))
         self.log.info("Update Account Balance account_id:"+str(to_operation_account.id))
-
-        # if settings.DEBUG and settings.DEBUG != True:
-
-        #########################################################################################################################
-        #########################################################################################################################
-        #########################################################################################################################
-        #########################################################################################################################
-
-        investor_type = ""
-        if from_account.external_account_type_id == 1:  # PERSONA
-            investor_type = "user"
-        elif from_account.external_account_type_id == 2:  # Empresa
-            investor_type = "enterprise"
-        else:
-            raise ValueError("Investor Type Error")
 
         # Send SNS to confirm the payment (to financing)
 
         if SEND_AWS_SNS:
+            investor_type = ""
+            if from_account.external_account_type_id == 1:  # PERSONA
+                investor_type = "user"
+            elif from_account.external_account_type_id == 2:  # Empresa
+                investor_type = "enterprise"
+            else:
+                raise ValueError("Investor Type Error")
+
             self.log.info("SNS start Financing Services to SNS_INVESTMENT_PAYMENT")
             sns = SnsServiceLibrary()
 
@@ -235,9 +226,5 @@ class FinanceOperationByInvestmentTransaction(Service):
 
         else:
             self.log.info("Sin envio Financing Services to SNS_INVESTMENT_PAYMENT")
-        #########################################################################################################################
-        #########################################################################################################################
-        #########################################################################################################################
-        #########################################################################################################################
 
         return model_to_dict(journal)
