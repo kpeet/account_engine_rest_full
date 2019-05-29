@@ -18,6 +18,21 @@ import logging
 
 
 class RequesterPaymentFromOperation(Service):
+    """
+    Funcion de Pago a Solicitante:
+
+    Genera movimientos en cuentas T de Operacion/cuenta Solicitante/Costos .
+
+        Validaciones que implica la operacion de pagar al solicitane
+
+        1- que la operacion esté financiada
+
+        2- que la operacion tenga suficiente financiamiento para pagar al solicitante y todos los costos asociados
+
+        3- que los costos mas el monto a transferir sean iguales a el monto total de la transferencia
+
+        4- que los costos no sean mayor que el monto a transferir al solicitante
+    """
     TRANSACTION_TYPE = 5
     log = logging.getLogger("info_logger")
 
@@ -28,14 +43,10 @@ class RequesterPaymentFromOperation(Service):
     asset_type = forms.IntegerField(required=True)
     requester_costs = MultipleFormField(CostForm, required=False)
 
-    # Validaciones que implica la operacion de pagar al solicitane
 
-    # 1- que la operacion esté financiada
-    # 2- que la operacion tenga suficiente financiamiento para pagar al solicitante y todos los costos asociados
-    # 3- que los costos mas el monto a transferir sean iguales a el monto total de la transferencia
-    # 4- que los costos no sean mayor que el monto a transferir al solicitante
 
     def clean(self):
+        #TODO: Validar que el solicitante sea el incrito en la operacion
         cleaned_data = super().clean()
         account = cleaned_data.get("account")
         total_amount = cleaned_data.get("total_amount")
@@ -45,8 +56,6 @@ class RequesterPaymentFromOperation(Service):
         operation_financing_total_amount = Posting.objects.filter(account=operation_data).aggregate(Sum('amount'))
         cumplo_operation_bank_account = Account.objects.get(external_account_type_id=4, external_account_id=2)
 
-
-
         to_requester_account = Account.objects.get(id=account)
 
         to_requestor_account_bank = BankAccount.objects.filter(
@@ -54,7 +63,6 @@ class RequesterPaymentFromOperation(Service):
 
         from_account_bank = BankAccount.objects.filter(
             account=cumplo_operation_bank_account).order_by('-updated_at')[0:1]
-
 
         if to_requestor_account_bank.exists():
             to_requestor_account_bank = to_requestor_account_bank.get()
@@ -65,7 +73,6 @@ class RequesterPaymentFromOperation(Service):
             from_account_bank = from_account_bank.get()
         else:
             raise forms.ValidationError("No hay cuenta bancaria registrada para la cuenta de operación. Operación Cancelada!!")
-
 
         # 2- que la operacion tenga suficiente financiamiento para pagar al solicitante y todos los costos asociados
 
@@ -100,7 +107,7 @@ class RequesterPaymentFromOperation(Service):
     def process(self):
         # TODO: modificar este valor en duro
         transaction_type = 5  # Pago a solicitante
-        # Get Data
+        # Init Data
         account = self.cleaned_data['account']
         total_amount = self.cleaned_data['total_amount']
         transfer_amount = self.cleaned_data['transfer_amount']
@@ -112,20 +119,30 @@ class RequesterPaymentFromOperation(Service):
         journal_transaction = JournalTransactionType.objects.get(id=transaction_type)
         from_account = CreditOperation.objects.get(external_account_id=external_operation_id)
         cumplo_operation_bank_account = Account.objects.get(external_account_type_id=4, external_account_id=2)
-
         to_requester_account = Account.objects.get(id=account)
-
         asset_type = AssetType.objects.get(id=asset_type)
 
-        # Traigo la cuenta de cumplo asesorias
-        cumplo_cost_account = Account.objects.get(id=CUMPLO_COST_ACCOUNT)
+        # Posting Operation v/s Requestor, T Accounts
+        ###########################################
+        create_journal_input = {
+            'transaction_type_id': journal_transaction.id,
+            'from_account_id': from_account.id,
+            'to_account_id': to_requester_account.id,
+            'asset_type': asset_type.id,
+            'total_amount': Decimal(total_amount),
+            }
+        journal = CreateJournalService.execute(create_journal_input)
 
-        # Create Data
-        ################################################################################################################
-        ################################################################################################################
+        # Posting Operation v/s Requestor, T Accounts
+        # Cost Posting Process
+        #######################
+        costTransaction(transaction_cost_list=requester_costs, journal=journal, asset_type=asset_type, from_account=to_requester_account)
+
 
         # TODO: Llamar al modulo de facturación
         # asignacion de inversionista a costos cumplo
+        # Traigo la cuenta de cumplo asesorias
+        #cumplo_cost_account = Account.objects.get(id=CUMPLO_COST_ACCOUNT)
         total_amount_cost = 0
         for requester_cost in requester_costs:
             total_amount_cost = total_amount_cost + requester_cost.cleaned_data['amount']
@@ -133,36 +150,8 @@ class RequesterPaymentFromOperation(Service):
         if total_amount_cost + transfer_amount != total_amount:
             raise Exception("Montos totales no coinciden")
 
-        # ACCOUNT common
-        ################################################################################################################
-        # Creacion de asiento
-        # journal = Journal.objects.create(batch=None, gloss=journal_transaction.description,
-        #                                  journal_transaction=journal_transaction)
-
-        # # Descuento a la cuenta de operacion por el monto total
-        # posting_from = Posting.objects.create(account=from_account, asset_type=asset_type, journal=journal,
-        #                                       amount=(Decimal(total_amount) * -1))
-        #
-        # # Asignacion de inversionista a operacion
-        # posting_to = Posting.objects.create(account=to_requester_account, asset_type=asset_type, journal=journal,
-        #                                     amount=Decimal(
-        #                                         total_amount))  ## al solicitante se le gira el total delmonto y se le descuentan los costos con costTransaction
-
-        create_journal_input = {
-            'transaction_type_id': journal_transaction.id,
-            'from_account_id': from_account.id,
-            'to_account_id': to_requester_account.id,
-            'asset_type': asset_type.id,
-            'total_amount': Decimal(total_amount),
-        }
-
-        journal = CreateJournalService.execute(create_journal_input)
-
-        # ACCOUNT common
-        ################################################################################################################
-
-        costTransaction(transaction_cost_list=requester_costs, journal=journal, asset_type=asset_type, from_account=to_requester_account)
-
+        # AWS SNS Notification
+        #######################
         self.send_AWS_SNS_Treasury(to_requester_account=to_requester_account, cumplo_operation_bank_account=cumplo_operation_bank_account, transfer_amount=transfer_amount)
 
         self.send_aws_sns_to_loans(external_operation_id=external_operation_id)
@@ -205,7 +194,6 @@ class RequesterPaymentFromOperation(Service):
         else:
             self.log.info("SNS Push  payload ")
             self.log.info(str(payload))
-
 
     def send_aws_sns_to_loans(self,external_operation_id):
         sns = SnsServiceLibrary()

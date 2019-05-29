@@ -7,7 +7,7 @@ from .models import Account, OperationAccount, AccountType, Journal, JournalTran
     BankAccount,VirtualAccountDeposit
 from .serializers import AccountSerializer, OperationAccountSerializer, AccountTypeSerializer, JournalSerializer, \
     JournalTransactionTypeSerializer, PostingSerializer, JournalOperationInvestmentTransactionSerializer, \
-    DWHBalanceAccountSerializer, BankRegistrySerializer, VirtualAccountDepositSerializer, VirtualAccountDepositFormatSerializer
+    DWHBalanceAccountSerializer, BankRegistrySerializer,BankRegistrySerializer2, VirtualAccountDepositSerializer, VirtualAccountDepositFormatSerializer
 
 
 class AccountViewSet(ModelViewSet):
@@ -86,9 +86,24 @@ class BalanceAccountViewSet(ModelViewSet):
         return Response(serializer.data)
 
 
-class BankRegistryViewSet(ModelViewSet):
-    queryset = BankAccount.objects.all()
-    serializer_class = BankRegistrySerializer
+class BankRegistryViewSet(ViewSet):
+    def list(self, request):
+
+        queryset = BankAccount.objects.all()
+        serializer_class = BankRegistrySerializer(queryset, many=True)
+        return Response(serializer_class.data)
+
+    def create(self, request):
+        serializer = BankRegistrySerializer2(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response(serializer.validated_data)
+
+        return Response({
+            'status': 'Bad request',
+            'message': serializer.errors
+        }, )
 
 
 

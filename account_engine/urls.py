@@ -26,7 +26,7 @@ router.register(r'virtual_account_deposits', VirtualAccountDepositViewSet,base_n
 #path('virtual_account_deposit/', VirtualAccountDeposit.as_view(), name='virtual-account-deposit'),
 
 # Bank Registry
-router.register(r'bank', BankRegistryViewSet)#path('account/bank_registry/', BankRegistry.as_view())
+router.register(r'bank', BankRegistryViewSet, base_name="bank") #path('account/bank_registry/', BankRegistry.as_view())
 
 router.registry.extend(credits_router.registry)
 

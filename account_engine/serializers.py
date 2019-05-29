@@ -1,4 +1,3 @@
-
 from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from django.utils.translation import ugettext_lazy as _
@@ -9,8 +8,8 @@ from django.db.models import Sum
 
 from .constants import TRANSACTION_TYPE
 
-
-from .models import Account, OperationAccount, AccountType, Journal, JournalTransactionType, Posting, DWHBalanceAccount, BankAccount, VirtualAccountDeposit, AssetType
+from .models import Account, OperationAccount, AccountType, Journal, JournalTransactionType, Posting, DWHBalanceAccount, \
+    BankAccount, VirtualAccountDeposit, AssetType
 
 from .account_engine_services import UpdateBalanceAccountService
 
@@ -56,7 +55,6 @@ class AccountSerializer(serializers.ModelSerializer):
 
 
 class OperationAccountSerializer(serializers.Serializer):
-
     operation_id = serializers.CharField(required=True, source='external_account_id', max_length=150)
     financing_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=2)
     requester_id = serializers.IntegerField(required=True, source='requester_account_id')
@@ -102,14 +100,12 @@ class AccountTypeSerializer(serializers.ModelSerializer):
 
 
 class JournalSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Journal
         fields = "__all__"
 
 
 class JournalTransactionTypeSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = JournalTransactionType
         fields = "__all__"
@@ -144,7 +140,7 @@ class BillingPropertiesSerializers(serializers.Serializer):
 
     billable = serializers.BooleanField(required=True)
     billing_entity = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    #TODO: TAX, validar con Barbara si es necesario este campo para presentación de info en datos de Facturación
+    # TODO: TAX, validar con Barbara si es necesario este campo para presentación de info en datos de Facturación
 
 
 class AccountEnginePropertiesSerializer(serializers.Serializer):
@@ -155,6 +151,7 @@ class AccountEnginePropertiesSerializer(serializers.Serializer):
         pass
 
     destination_account = DestinationAccountSerializer()
+
 
 class CostSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
@@ -182,7 +179,6 @@ class JournalOperationInvestmentTransactionSerializer(serializers.Serializer):
 
     def create(self, validated_data):
 
-
         investor_account = Account.objects.get(external_account_id=validated_data['investor_account_id'],
                                                external_account_type_id=validated_data['investor_account_type'])
 
@@ -208,11 +204,9 @@ class JournalOperationInvestmentTransactionSerializer(serializers.Serializer):
 
 
 class DWHBalanceAccountSerializer(ModelSerializer):
-
     class Meta:
         model = DWHBalanceAccount
         fields = "__all__"
-
 
 
 class BankRegistrySerializer(serializers.ModelSerializer):
@@ -220,10 +214,56 @@ class BankRegistrySerializer(serializers.ModelSerializer):
         model = BankAccount
         fields = '__all__'
 
+
+class BankRegistrySerializer2(serializers.Serializer):
+    EXTERNAL_REQUESTOR_ACCOUNT_TYPE = 2
+
+    bank_account_number = serializers.IntegerField(required=True)
+    account_notification_email = serializers.EmailField(required=True, )
+    account_holder_name = serializers.CharField(required=True, max_length=150)
+    account_holder_document_number = serializers.CharField(required=True, max_length=12)
+    bank_code = serializers.IntegerField(required=True)
+    account_bank_type = serializers.IntegerField(required=True,)
+
+    external_account_id = serializers.IntegerField(required=True, )
+    external_account_type = serializers.IntegerField(required=True,)
+
+    def validate(self, data):
+        try:
+
+            Account.objects.get(external_account_id=data['external_account_id'],
+                                external_account_type_id=data['external_account_type'])
+
+            return data
+
+        except Exception as e:
+            raise serializers.ValidationError(str(e))
+
+    def create(self, validated_data):
+        account = Account.objects.get(external_account_id=validated_data['external_account_id'],
+                                      external_account_type_id=validated_data['external_account_type'])
+
+        create_bank_account = BankAccount.objects.create(account=account,
+                                                      bank_account_number=validated_data['external_account_type'],
+                                                      bank_code=validated_data['bank_code'],
+                                                      account_notification_email=validated_data[
+                                                          'account_notification_email'],
+                                                      account_bank_type=validated_data['account_bank_type'],
+                                                      account_holder_name=validated_data['account_holder_name'],
+                                                      account_holder_document_number=validated_data[
+                                                          'account_holder_document_number'],
+                                                      )
+        return create_bank_account
+
+    def update(self, instance, validated_data):
+        pass
+
+
 class VirtualAccountDepositFormatSerializer(serializers.ModelSerializer):
     class Meta:
         model = VirtualAccountDeposit
         fields = '__all__'
+
 
 class VirtualAccountDepositSerializer(serializers.Serializer):
     real_account = serializers.CharField(required=True, max_length=150)
@@ -235,9 +275,10 @@ class VirtualAccountDepositSerializer(serializers.Serializer):
 
     def validate(self, data):
         try:
-            Account.objects.get(external_account_id=data['external_account_id'], external_account_type_id=data['external_account_type'])
+            Account.objects.get(external_account_id=data['external_account_id'],
+                                external_account_type_id=data['external_account_type'])
             AssetType.objects.get(id=data['asset_type'])
-            #TODO: Validar BankAccount v/s real_account
+            # TODO: Validar BankAccount v/s real_account
             BankAccount.objects.get(id=data['real_account'])
 
             return data
@@ -249,15 +290,17 @@ class VirtualAccountDepositSerializer(serializers.Serializer):
                                               external_account_type_id=validated_data['external_account_type'])
         journal_transaction_type = JournalTransactionType.objects.get(id=TRANSACTION_TYPE.get('DEPOSIT_REAL_VIRTUAL'))
 
+        bank_account = BankAccount.objects.get(id=validated_data['real_account'])
 
-        bank_account=BankAccount.objects.get(id=validated_data['real_account'])
+        ###############################################################################################
+        ###############################################################################################
+        ###############################################################################################
 
-###############################################################################################
-###############################################################################################
-###############################################################################################
-
-        virtual_account_deposits=VirtualAccountDeposit.objects.create(amount=validated_data['amount'], deposit_date=validated_data['deposit_date'],asset_type_id=validated_data['asset_type'],account=destiny_account,real_account=bank_account )
-
+        virtual_account_deposits = VirtualAccountDeposit.objects.create(amount=validated_data['amount'],
+                                                                        deposit_date=validated_data['deposit_date'],
+                                                                        asset_type_id=validated_data['asset_type'],
+                                                                        account=destiny_account,
+                                                                        real_account=bank_account)
 
         journal = Journal.objects.create(journal_transaction=journal_transaction_type,
                                          gloss=journal_transaction_type.description + ", deposit date:" + str(
@@ -265,7 +308,7 @@ class VirtualAccountDepositSerializer(serializers.Serializer):
                                          batch=None)
 
         Posting.objects.create(account=destiny_account, journal=journal, amount=validated_data['amount'],
-                                              asset_type_id=validated_data['asset_type'])
+                               asset_type_id=validated_data['asset_type'])
 
         UpdateBalanceAccountService.execute(
             {
@@ -273,9 +316,9 @@ class VirtualAccountDepositSerializer(serializers.Serializer):
             }
         )
 
-###############################################################################################
-###############################################################################################
-###############################################################################################
+        ###############################################################################################
+        ###############################################################################################
+        ###############################################################################################
 
         return virtual_account_deposits
 
