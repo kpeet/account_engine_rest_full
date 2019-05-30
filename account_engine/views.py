@@ -14,6 +14,13 @@ class AccountViewSet(ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
 
+    @action(detail=True, )
+    def posting_history(self, request, pk=None):
+        queryset = Posting.objects.select_related('journal').values('journal__gloss', 'amount', 'created_at').filter(
+            account_id=pk)
+
+        return Response(queryset)
+
 
 class OperationAccountViewSet(ModelViewSet):
     queryset = OperationAccount.objects.all()
@@ -64,18 +71,12 @@ class BalanceAccountViewSet(ModelViewSet):
     @action(detail=False, methods=['post'])
     def set_password(self, request, pk=None):
 
-        #investment = get_object_or_404(Account, id=pk)
             return Response({'status': 'password set'})
 
 
 
     @action(methods=['post'], detail=True)
     def positive_balance(self, request, pk):
-        print("pk!!!!!!!")
-        print(pk)
-        #investment = get_object_or_404(Account, id=pk)
-        # investment, confirmed = investment.confirm()
-        #serializer = AccountSerializer(investment)  # DWHBalanceAccountSerializer(investment)
         return Response({'status': 'password set'})
 
 
@@ -121,8 +122,6 @@ class PositiveBalanceViewSet(ViewSet):
 
     @action(detail=False, )
     def positive_balance(self, request, account_type=None):
-        print("account_type")
-        print(account_type)
         positive_balance_accounts = DWHBalanceAccount.objects.values('account__name', ).filter(
             balance_account_amount__gt=0, account__external_account_type=account_type).annotate(
             account_id=F('account__external_account_id'), account_type=F('account__external_account_type'),
