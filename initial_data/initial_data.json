@@ -66,7 +66,7 @@
       "model": "account_engine.Account",
       "pk": 1,
       "fields": {
-      "name": "Cumplo Asesorias",
+      "name": "Cumplo Asesorias Operaciones Kimchi",
       "external_account_id": 1,
       "external_account_type": 4,
       "created_at": "2018-11-14T23:24:16.038Z",
@@ -77,19 +77,8 @@
       "model": "account_engine.Account",
       "pk": 2,
       "fields": {
-      "name": "Cumplo Operaciones",
-      "external_account_id": 2,
-      "external_account_type": 4,
-      "created_at": "2018-11-14T23:24:16.038Z",
-      "updated_at": "2018-11-14T23:24:16.038Z"
-      }
-  },
-   {
-      "model": "account_engine.Account",
-      "pk": 3,
-      "fields": {
       "name": "Cumplo Costos",
-      "external_account_id": 3,
+      "external_account_id": 2,
       "external_account_type": 4,
       "created_at": "2018-11-14T23:24:16.038Z",
       "updated_at": "2018-11-14T23:24:16.038Z"

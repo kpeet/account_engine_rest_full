@@ -16,7 +16,8 @@ from sns_sqs_services.services import SnsService as SnsServiceLibrary
 from sns_sqs_services.services import SqsService
 from django.conf import settings
 from core_account_engine.utils import generate_sns_topic
-from .helper_services import CUMPLO_COST_ACCOUNT, SEND_AWS_SNS
+from .helper_services import CUMPLO_COST_ACCOUNT, SEND_AWS_SNS, send_AWS_SNS_treasury_paysheet_line
+
 
 class InvestorPaymentFromOperation(Service):
     log = logging.getLogger("info_logger")
@@ -39,17 +40,16 @@ class InvestorPaymentFromOperation(Service):
         self.log.info("InvestorPaymentFromOperation:: FLAG 1")
 
         try:
-            self.log.info("InvestorPaymentFromOperation:: FLAG 1-1"+str(external_operation_id))
-            credit_operation=CreditOperation.objects.get(external_account_id=external_operation_id)
+            self.log.info("InvestorPaymentFromOperation:: FLAG 1-1" + str(external_operation_id))
+            credit_operation = CreditOperation.objects.get(external_account_id=external_operation_id)
             self.log.info("InvestorPaymentFromOperation:: FLAG 1-2")
 
-
-            instalment=Instalment.objects.filter(external_instalment_id=instalment_id, credit_operation=credit_operation)
+            instalment = Instalment.objects.filter(external_instalment_id=instalment_id,
+                                                   credit_operation=credit_operation)
             if instalment.exists():
                 pass
             else:
                 raise forms.ValidationError("La Cuota No hay sido Ingresada en el proceso de pago de cuotas")
-
 
                 self.log.info("InvestorPaymentFromOperation:: FLAG 2")
         except Exception as e:
@@ -62,13 +62,12 @@ class InvestorPaymentFromOperation(Service):
             raise forms.ValidationError(str(e))
 
         cumplo_operation_bank_account = Account.objects.get(external_account_type_id=4, external_account_id=2)
-        from_account_bank_list = BankAccount.objects.filter(
+        from_account_bank_last = BankAccount.objects.filter(
             account=cumplo_operation_bank_account).order_by('-updated')[0:1]
 
-
-        #cumplo_operation_bank_account = Account.objects.get(external_account_type_id=4, external_account_id=2)
+        # cumplo_operation_bank_account = Account.objects.get(external_account_type_id=4, external_account_id=2)
         self.log.info("InvestorPaymentFromOperation:: FLAG 4")
-        if from_account_bank_list.exists():
+        if from_account_bank_last.exists():
             self.log.info("InvestorPaymentFromOperation:: FLAG 4-1")
             pass
         else:
@@ -78,14 +77,14 @@ class InvestorPaymentFromOperation(Service):
         total_investment_instalment = 0
         for investor in investors:
 
-            external_investment_instalment = investor.cleaned_data['investment_id']
+            external_investment_instalment = investor.cleaned_data['external_investment_instalment_id']
             self.log.info("InvestorPaymentFromOperation:: FLAG 5")
             investor_account = Account.objects.get(
                 external_account_id=investor.cleaned_data['investor_account_id'],
                 external_account_type_id=investor.cleaned_data['investor_account_type'])
 
             investor_bank_account = BankAccount.objects.filter(account=investor_account).order_by('-updated_at')[0:1]
-            self.log.info("InvestorPaymentFromOperation:: FLAG 6:: id_investor_account"+str(investor_account))
+            self.log.info("InvestorPaymentFromOperation:: FLAG 6:: id_investor_account" + str(investor_account))
             if investor_bank_account.exists():
                 self.log.info("InvestorPaymentFromOperation:: FLAG 6-1")
                 investor_bank_account = investor_bank_account.get()
@@ -120,9 +119,9 @@ class InvestorPaymentFromOperation(Service):
             self.log.info("InvestorPaymentFromOperation:: FLAG 9")
             if investment_instalment_cost_amount > Decimal(
                     investor.cleaned_data.get('total_amount') - investor.cleaned_data.get(
-                            'investment_instalment_amount')) or investment_instalment_cost_amount < Decimal(
-                    investor.cleaned_data.get('total_amount') - investor.cleaned_data.get(
-                            'investment_instalment_amount')):
+                        'investment_instalment_amount')) or investment_instalment_cost_amount < Decimal(
+                investor.cleaned_data.get('total_amount') - investor.cleaned_data.get(
+                    'investment_instalment_amount')):
                 raise forms.ValidationError(
                     "Montos de costos de InvestmentInstalments e invesment instalment No coinciden " + str(
                         investment_instalment_cost_amount) + ", " + str(Decimal(
@@ -144,28 +143,34 @@ class InvestorPaymentFromOperation(Service):
 
         asset_type = self.cleaned_data['asset_type']
 
-
         # Get and Process Data
         journal_transaction = JournalTransactionType.objects.get(id=transaction_type)
         journal = Journal.objects.create(batch=None, gloss=journal_transaction.description,
                                          journal_transaction=journal_transaction)
         asset_type = AssetType.objects.get(id=asset_type)
 
-
-
         operation = CreditOperation.objects.get(external_account_id=external_credit_operation_id)
-
 
         self.log.info("InvestorPaymentFromOperation:: process FLag 2")
 
-
         # POSTING DESTINO
         for investor_payment in investor_payments:
+            self.log.info("InvestorPaymentFromOperation:: external_investment_instalment:::::::::::::::")
+            self.log.info(str(investor_payment.cleaned_data))
+
+            external_investment_instalment = investor_payment.cleaned_data['external_investment_instalment_id']
+
+            self.log.info(
+                "InvestorPaymentFromOperation:: external_investment_instalment" + str(external_investment_instalment))
 
             investor_account = Account.objects.get(
                 external_account_id=investor_payment.cleaned_data['investor_account_id'],
                 external_account_type_id=investor_payment.cleaned_data['investor_account_type'])
 
+            investor_amount = Decimal(investor_payment.cleaned_data['total_amount'])
+            investment_instalment_costs = investor_payment.cleaned_data['investment_instalment_cost']
+
+            self.log.info("FLAG 1")
             # Posting Operation v/s Investor, T Accounts
             ###########################################
             create_journal_input = {
@@ -173,69 +178,38 @@ class InvestorPaymentFromOperation(Service):
                 'from_account_id': operation.id,
                 'to_account_id': investor_account.id,
                 'asset_type': asset_type.id,
-                'total_amount': Decimal(investor_payment.cleaned_data['total_amount']),
+                'total_amount': investor_amount,
             }
+            self.log.info("FLAG 2")
             journal = CreateJournalService.execute(create_journal_input)
-
-
+            self.log.info("FLAG 3")
             cumplo_operation_bank_account = Account.objects.get(external_account_type_id=4, external_account_id=2)
+            self.log.info("FLAG 4")
+            self.log.info(str(external_investment_instalment))
 
-            self.send_AWS_SNS_Treasury(to_account=investor_account, from_account=cumplo_operation_bank_account,transfer_amount=investor_payment.cleaned_data['total_amount']  )
+            #self.send_aws_sns_loans( external_investment_instalment=external_investment_instalment)
 
+            self.log.info("FLAG 5")
+            self.log.info("investor_payment.cleaned_data[total_amount]")
+            self.log.info(str(investor_payment.cleaned_data['total_amount']))
 
-
-
+            send_AWS_SNS_treasury_paysheet_line(self, to_account=investor_account,
+                                                from_account=cumplo_operation_bank_account,
+                                                transfer_amount=investor_amount,
+                                                paysheet_type="investor")
 
         return model_to_dict(journal)
 
-    def send_aws_sns_loans(self, external_investment_instalment):
 
-        sqs = SqsService(json_data={
+    def send_aws_sns_loans(self, external_investment_instalment):
+        self.log.info("SEND to LOANS InvesmentInstalment Confirmation")
+        sqs=SqsService()
+        payload = {
             "result": "OK",
             "invesment_instalment_id": external_investment_instalment
-        })
+        }
 
-        sqs.push('sqs_invesment_instalment_loans_notification')
+        sqs.push('sqs_invesment_instalment_loans_notification',payload)
         logging.getLogger("error_logger").error(
             "send to sqs_invesment_instalment_loans_notification :: external_investment_instalment" + str(
                 external_investment_instalment))
-
-
-
-    def send_AWS_SNS_Treasury(self,to_account, from_account, transfer_amount ):
-        self.log.info("SNS start RequestorPayment Services to SNS_TREASURY_PAYSHEET")
-        self.log.info(" SNS_TREASURY_PAYSHEET"+str(settings.SNS_TREASURY_PAYSHEET))
-
-        sns = SnsServiceLibrary()
-        sns_topic = generate_sns_topic(settings.SNS_TREASURY_PAYSHEET)
-
-        arn = sns.get_arn_by_name(sns_topic)
-
-        attribute = {}  # sns.make_attributes(type='response', status='success')
-
-        to_account_bank = BankAccount.objects.filter(
-            account=to_account).order_by('-updated_at')[0:1]
-
-        from_account_bank = BankAccount.objects.filter(
-            account=from_account).order_by('-updated_at')[0:1]
-
-        payload = {
-            "origin_account": from_account_bank.bank_account_number,
-            "beneficiary_name": to_account_bank.account_holder_name,
-            "document_number": to_account_bank.account_holder_document_number,
-            "email": to_account_bank.account_notification_email,
-            "message": "Pago a Solicitante",  # journal_transaction.description,
-            "destination_account": to_account_bank.bank_account_number,
-            "transfer_amount": f'{transfer_amount:.2f}',
-            # .format(transfer_amount)), #Decimal(transfer_amount, round(2))),
-            "currency_type": "CLP",
-            "paysheet_line_type": "requestor",
-            "bank_code": to_account_bank.bank_code
-        }
-
-        if SEND_AWS_SNS:
-            sns.push(arn, attribute, payload)
-            self.log.info("SNS Push  payload RequestorPayment Services to SNS_TREASURY_PAYSHEET")
-        else:
-            self.log.info("SNS Push  payload ")
-            self.log.info(str(payload))

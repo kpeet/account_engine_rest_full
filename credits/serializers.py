@@ -157,7 +157,7 @@ class CreditOperationSerializer2(serializers.Serializer):
         requester = Account.objects.get(external_account_id=validated_data['requester_account_id'],
                                         external_account_type_id=CreditOperationSerializer2.EXTERNAL_REQUESTOR_ACCOUNT_TYPE)
 
-        name = "Operacion " + str(validated_data['requester_account_id'])
+        name = "Operacion " + str(validated_data['operation_id'])
         create_operation = CreditOperation.objects.create(external_account_id=validated_data['external_account_id'],
                                                           name=name,
                                                           requestor_account=requester,
@@ -207,7 +207,7 @@ class FinancingCreditOperationSerializer(serializers.Serializer):
 
 class RequestorPaymentSerializer(serializers.Serializer):
     # TODO: ASSET TYPE DEBE SER DEFINIDO EN ALGUN PUNTO PARA DIFERENCIAS INGRESOS CON OTROS TIPOS DE MONEDA
-
+    ASSET_TYPE = 1
     def positive_number(value):
         if value < Decimal(0):
             raise serializers.ValidationError("Must be positive ")
@@ -265,7 +265,6 @@ class InstalmentPaymentSerializers(serializers.Serializer):
         pass
 
     def create(self, validated_data):
-        print("Flag 2")
         return validated_data
 
     payer_account_id = serializers.IntegerField(required=True)
@@ -332,6 +331,7 @@ class PaymentToInvestor(serializers.Serializer):
     total_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=5)
     investment_instalment_amount = serializers.DecimalField(required=True, max_digits=20, decimal_places=5)
     investment_instalment_cost = CostSerializer(many=True)
+    external_investment_instalment_id = serializers.IntegerField(required=True)
 
 
 class JournalInvestorPaymentFromInstalmentOperationSerializer(serializers.Serializer):

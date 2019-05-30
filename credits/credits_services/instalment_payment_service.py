@@ -65,9 +65,7 @@ class InstalmentPayment(Service):
 
                 self.log.info("start SEND_AWS_SNS")
                 sns = SnsServiceLibrary()
-
                 sns_topic = generate_sns_topic(settings.SNS_INSTALMENT_PAYMENT)
-
                 arn = sns.get_arn_by_name(sns_topic)
                 attribute = sns.make_attributes(
                     type='response', status='fail')
@@ -148,10 +146,14 @@ class InstalmentPayment(Service):
 
                     self.log.info("start SEND_AWS_SNS")
                     sns = SnsServiceLibrary()
+                    self.log.info(str("settings.SNS_INSTALMENT_PAYMENT"))
+                    self.log.info(str(settings.SNS_INSTALMENT_PAYMENT))
 
                     sns_topic = generate_sns_topic(settings.SNS_INSTALMENT_PAYMENT)
-
+                    self.log.info(str("sns_topic"))
+                    self.log.info(str(sns_topic))
                     arn = sns.get_arn_by_name(sns_topic)
+
                     attribute = sns.make_attributes(
                         type='response', status='success')
 

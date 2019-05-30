@@ -210,16 +210,30 @@ class FinanceOperationByInvestmentTransaction(Service):
 
             self.log.info("SNS start Financing Services to SNS_INVESTMENT_PAYMENT")
             sns = SnsServiceLibrary()
+            self.log.info("SNS_INVESTMENT_PAYMENT")
+            self.log.info(settings.SNS_INVESTMENT_PAYMENT)
 
-            sns_topic = generate_sns_topic(settings.SNS_INVESTMENT_PAYMENT)
+            self.log.info("AWS_REGION_NAME")
+            self.log.info(settings.AWS_REGION_NAME)
 
-            arn = sns.get_arn_by_name(sns_topic)
+            self.log.info("AWS_ACCESS_KEY_ID")
+            self.log.info(settings.AWS_ACCESS_KEY_ID)
+
+            self.log.info("AWS_SECRET_ACCESS_KEY")
+            self.log.info(settings.AWS_SECRET_ACCESS_KEY)
+
+
+
+            arn = sns.get_arn_by_name(settings.SNS_INVESTMENT_PAYMENT)
+            self.log.info("ARN SNS AWS INVESTMENT PAYMeNT")
+            self.log.info(arn)
             attribute = sns.make_attributes(entity=investor_type, type='response', status='success')
 
             payload = {
                 "message": "OK",
                 "investment_id": investment_id,
             }
+
             sns.push(arn, attribute, payload)
 
             self.log.info("SNS Push  payload Financing Services to SNS_INVESTMENT_PAYMENT")
