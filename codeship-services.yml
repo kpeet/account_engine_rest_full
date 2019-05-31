@@ -22,4 +22,4 @@ awsdeployment:
   environment:
     - AWS_DEFAULT_REGION=us-west-2
   volumes:
-    - ./:/deploy
+    - ./aws-deploy:/aws-deploy
