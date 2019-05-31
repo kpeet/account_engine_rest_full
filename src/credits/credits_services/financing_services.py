@@ -161,21 +161,6 @@ class FinanceOperationByInvestmentTransaction(Service):
         # Traigo la cuenta de cumplo asesorias
         cumplo_cost_account = Account.objects.get(id=CUMPLO_COST_ACCOUNT)
 
-
-        #
-        # # Creacion de asiento
-        # journal = Journal.objects.create(batch=None, gloss=journal_transaction.description,
-        #                                  journal_transaction=journal_transaction)
-        #
-        # # Descuento a la cuenta del inversionista
-        # posting_from = Posting.objects.create(account=from_account, asset_type=asset_type, journal=journal,
-        #                                       amount=(Decimal(total_amount) * -1))
-        #
-        # # Asignacion de inversionista a operacion
-        # posting_to = Posting.objects.create(account=to_operation_account, asset_type=asset_type, journal=journal,
-        #                                     amount=Decimal(investment_amount))
-
-
         # Posting Operation v/s Investor, T Accounts
         ###########################################
         create_journal_input = {
@@ -189,7 +174,7 @@ class FinanceOperationByInvestmentTransaction(Service):
 
         # POSTING inversionista v/s costos cumplo
         if investment_costs:
-            costTransaction(transaction_cost_list=investment_costs, journal=journal, asset_type=asset_type,
+            costTransaction(self,transaction_cost_list=investment_costs, journal=journal, asset_type=asset_type,
                             from_account=from_account)
 
         # TODO: definir transacción de financimiento
@@ -210,16 +195,30 @@ class FinanceOperationByInvestmentTransaction(Service):
 
             self.log.info("SNS start Financing Services to SNS_INVESTMENT_PAYMENT")
             sns = SnsServiceLibrary()
+            self.log.info("SNS_INVESTMENT_PAYMENT")
+            self.log.info(settings.SNS_INVESTMENT_PAYMENT)
 
-            sns_topic = generate_sns_topic(settings.SNS_INVESTMENT_PAYMENT)
+            self.log.info("AWS_REGION_NAME")
+            self.log.info(settings.AWS_REGION_NAME)
 
-            arn = sns.get_arn_by_name(sns_topic)
+            self.log.info("AWS_ACCESS_KEY_ID")
+            self.log.info(settings.AWS_ACCESS_KEY_ID)
+
+            self.log.info("AWS_SECRET_ACCESS_KEY")
+            self.log.info(settings.AWS_SECRET_ACCESS_KEY)
+
+
+
+            arn = sns.get_arn_by_name(settings.SNS_INVESTMENT_PAYMENT)
+            self.log.info("ARN SNS AWS INVESTMENT PAYMeNT")
+            self.log.info(arn)
             attribute = sns.make_attributes(entity=investor_type, type='response', status='success')
 
             payload = {
                 "message": "OK",
                 "investment_id": investment_id,
             }
+
             sns.push(arn, attribute, payload)
 
             self.log.info("SNS Push  payload Financing Services to SNS_INVESTMENT_PAYMENT")

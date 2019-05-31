@@ -1,0 +1,2 @@
+-r common.txt
+django-cors-headers==2.4.0

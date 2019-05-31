@@ -1,0 +1,83 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "002311116463.dkr.ecr.us-west-2.amazonaws.com/api-account-engine-common:staging",
+      "essential": true,
+      "memory": 1024,
+      "portMappings": [
+        {
+          "hostPort": 8001,
+          "containerPort": 8001
+        }
+      ],
+      "environment":[
+        {
+          "name": "DJANGO_SETTINGS_MODULE",
+          "value": "api_account_engine_cumplo.settings.staging"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/aws/elasticbeanstalk/api-account-engine-common-staging",
+          "awslogs-region": "us-west-2",
+          "awslogs-stream-prefix": "staging"
+        }
+      }
+    },
+    {
+      "name": "nginx",
+      "image": "002311116463.dkr.ecr.us-west-2.amazonaws.com/nginx-api-account-engine-common:staging",
+      "essential": true,
+      "memory": 128,
+      "entryPoint": [
+        "sh",
+        "-c"
+      ],
+      "command": [
+        "envsubst < /etc/nginx/conf.d/nginx.conf.template > /etc/nginx/conf.d/api.conf && nginx -g 'daemon off;'"
+      ],
+      "portMappings": [
+        {
+          "hostPort": 80,
+          "containerPort": 80
+        }
+      ],     
+      "links": [
+        "api"
+      ],
+      "environment": [
+        {
+          "name": "ALLOW_CORS_DOMAIN",
+          "value": "api\\.stag\\.cumplo\\.cl|backoffice-registro\\.stag\\.cumplo\\.cl|api-core\\.beta\\.cumplo\\.cl"
+        },
+        {
+          "name": "NGINX_DJANGO_PORT",
+          "value": "8001"
+        },
+        {
+          "name": "HTTP_TYPE",
+          "value": "http|https"
+        },
+        {
+          "name": "NGINX_DJANGO_SERVER",
+          "value": "api"
+        },
+        {
+          "name": "NGINX_DOMAIN",
+          "value": "localhost"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/aws/elasticbeanstalk/api-account-engine-common-staging",
+          "awslogs-region": "us-west-2",
+          "awslogs-stream-prefix": "staging"
+        }
+      }
+    }
+  ]  
+}

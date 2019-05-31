@@ -70,7 +70,7 @@ class InstalmentsForms(forms.Form):
 class PaymentToInvestorForm(forms.Form):
     investor_account_id = forms.IntegerField(required=True)
     investor_account_type = forms.IntegerField(required=True)
-
+    external_investment_instalment_id = forms.IntegerField(required=True)
     investment_id = forms.IntegerField(required=True)
     total_amount = forms.DecimalField(required=True)
     investment_instalment_amount = forms.DecimalField(required=True)

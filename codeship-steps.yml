@@ -1,0 +1,27 @@
+- name: Registry
+  type: parallel
+  steps: 
+  - name: push nginx staging
+    service: nginx-api-account-engine-common
+    type: push
+    # tag: master
+    image_name: 002311116463.dkr.ecr.us-west-2.amazonaws.com/nginx-api-account-engine-common
+    image_tag: 'staging'
+    registry: https://002311116463.dkr.ecr.us-west-2.amazonaws.com
+    dockercfg_service: dockercfg-generator-staging
+  - name: push app staging
+    service: api-account-engine-common-staging
+    type: push
+    # tag: master
+    image_name: 002311116463.dkr.ecr.us-west-2.amazonaws.com/api-account-engine-common
+    image_tag: "staging"
+    registry: https://002311116463.dkr.ecr.us-west-2.amazonaws.com
+    dockercfg_service: dockercfg-generator
+
+- name: Deploy
+  type: parallel
+  steps:
+  - name: staging
+    service: awsdeployment
+    # tag: master
+    command: codeship_aws eb_deploy /aws-deploy/staging api-account-engine-common api-account-engine-common-staging elasticbeanstalk-us-west-2-002311116463

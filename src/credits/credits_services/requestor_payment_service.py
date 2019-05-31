@@ -13,7 +13,7 @@ from sns_sqs_services.services import SnsService as SnsServiceLibrary
 from core_account_engine.utils import generate_sns_topic
 from django.conf import settings
 from .helper_services import CUMPLO_COST_ACCOUNT
-from .helper_services import SEND_AWS_SNS
+from .helper_services import send_AWS_SNS_treasury_paysheet_line, send_aws_sns_to_loans_requestor_payment_confirmation
 import logging
 
 
@@ -105,8 +105,10 @@ class RequesterPaymentFromOperation(Service):
         return cleaned_data
 
     def process(self):
-        # TODO: modificar este valor en duro
+        # TODO: modificar estos valores en duro
+        BILLING_ENTITY=True
         transaction_type = 5  # Pago a solicitante
+        paysheet_type="requestor"
         # Init Data
         account = self.cleaned_data['account']
         total_amount = self.cleaned_data['total_amount']
@@ -117,27 +119,52 @@ class RequesterPaymentFromOperation(Service):
 
         # Get and Process Data
         journal_transaction = JournalTransactionType.objects.get(id=transaction_type)
-        from_account = CreditOperation.objects.get(external_account_id=external_operation_id)
+        from_credit_operation_account = CreditOperation.objects.get(external_account_id=external_operation_id)
         cumplo_operation_bank_account = Account.objects.get(external_account_type_id=4, external_account_id=2)
         to_requester_account = Account.objects.get(id=account)
         asset_type = AssetType.objects.get(id=asset_type)
 
-        # Posting Operation v/s Requestor, T Accounts
-        ###########################################
-        create_journal_input = {
-            'transaction_type_id': journal_transaction.id,
-            'from_account_id': from_account.id,
-            'to_account_id': to_requester_account.id,
-            'asset_type': asset_type.id,
-            'total_amount': Decimal(total_amount),
+        if BILLING_ENTITY:
+    ###### SI ES facturABLE el COSTO AL SOLICITANTE###############
+            # Posting Operation v/s Requestor, T Accounts
+            ###########################################
+            create_journal_input = {
+                'transaction_type_id': journal_transaction.id,
+                'from_account_id': from_credit_operation_account.id,
+                'to_account_id': to_requester_account.id,
+                'asset_type': asset_type.id,
+                'total_amount': Decimal(total_amount),
+                }
+            journal = CreateJournalService.execute(create_journal_input)
+
+            # Posting Operation v/s Requestor, T Accounts
+            # Cost Posting Process
+            #######################
+            costTransaction(self, transaction_cost_list=requester_costs, journal=journal, asset_type=asset_type, from_account=to_requester_account)
+
+    ###### SI ES facturABLE el COSTO AL SOLICITANTE###############
+        else:
+    ###### NO ES facturABLE el COSTO AL SOLICITANTE:::UTILIDAD POR MAYOR VALOR!!!###############
+    # Posting Operation v/s Requestor, T Accounts
+    ###########################################
+    #TODO: Analizar los costos para ver si son facturable o no, dependiendo de eso es como se distribuyen en entre las cuentas T los montos
+
+            create_journal_input = {
+                'transaction_type_id': journal_transaction.id,
+                'from_account_id': from_credit_operation_account.id,
+                'to_account_id': to_requester_account.id,
+                'asset_type': asset_type.id,
+                'total_amount': Decimal(transfer_amount),
             }
-        journal = CreateJournalService.execute(create_journal_input)
+            journal = CreateJournalService.execute(create_journal_input)
 
-        # Posting Operation v/s Requestor, T Accounts
-        # Cost Posting Process
-        #######################
-        costTransaction(transaction_cost_list=requester_costs, journal=journal, asset_type=asset_type, from_account=to_requester_account)
+            # Posting Operation v/s Requestor, T Accounts
+            # Cost Posting Process
+            #######################
+            costTransaction(self, transaction_cost_list=requester_costs, journal=journal, asset_type=asset_type,
+                    from_account=from_credit_operation_account)
 
+    ###### NO ES facturABLE el COSTO AL SOLICITANTE###############
 
         # TODO: Llamar al modulo de facturación
         # asignacion de inversionista a costos cumplo
@@ -153,61 +180,11 @@ class RequesterPaymentFromOperation(Service):
         # AWS SNS Notification
         #######################
         #Envio a Paysheet
-        self.send_AWS_SNS_Treasury(to_requester_account=to_requester_account, cumplo_operation_bank_account=cumplo_operation_bank_account, transfer_amount=transfer_amount)
+        #self.send_AWS_SNS_Treasury(to_requester_account=to_requester_account, cumplo_operation_bank_account=cumplo_operation_bank_account, transfer_amount=transfer_amount)
 
+        send_AWS_SNS_treasury_paysheet_line(self, to_account=to_requester_account, from_account=cumplo_operation_bank_account, transfer_amount=transfer_amount, paysheet_type=paysheet_type)
         #Notificacion de Nevio a paysheet a LOANS
-        self.send_aws_sns_to_loans(external_operation_id=external_operation_id)
+        send_aws_sns_to_loans_requestor_payment_confirmation(self, external_operation_id=external_operation_id)
+        #self.send_aws_sns_to_loans(external_operation_id=external_operation_id)
 
         return model_to_dict(journal)
-
-    def send_AWS_SNS_Treasury(self,to_requester_account, cumplo_operation_bank_account, transfer_amount ):
-        self.log.info("SNS start RequestorPayment Services to SNS_TREASURY_PAYSHEET")
-
-        sns = SnsServiceLibrary()
-        sns_topic = generate_sns_topic(settings.SNS_TREASURY_PAYSHEET)
-
-        arn = sns.get_arn_by_name(sns_topic)
-
-        attribute = {}  # sns.make_attributes(type='response', status='success')
-
-        to_requestor_account_bank = BankAccount.objects.filter(
-            account=to_requester_account).order_by('-updated_at')[0:1]
-
-        from_account_bank = BankAccount.objects.filter(
-            account=cumplo_operation_bank_account).order_by('-updated_at')[0:1]
-
-        payload = {
-            "origin_account": from_account_bank.bank_account_number,
-            "beneficiary_name": to_requestor_account_bank.account_holder_name,
-            "document_number": to_requestor_account_bank.account_holder_document_number,
-            "email": to_requestor_account_bank.account_notification_email,
-            "message": "Pago a Solicitante",  # journal_transaction.description,
-            "destination_account": to_requestor_account_bank.bank_account_number,
-            "transfer_amount": f'{transfer_amount:.2f}',
-            # .format(transfer_amount)), #Decimal(transfer_amount, round(2))),
-            "currency_type": "CLP",
-            "paysheet_line_type": "requestor",
-            "bank_code": to_requestor_account_bank.bank_code
-        }
-
-        if SEND_AWS_SNS:
-            sns.push(arn, attribute, payload)
-            self.log.info("SNS Push  payload RequestorPayment Services to SNS_TREASURY_PAYSHEET")
-        else:
-            self.log.info("SNS Push  payload ")
-            self.log.info(str(payload))
-
-    def send_aws_sns_to_loans(self,external_operation_id):
-        sns = SnsServiceLibrary()
-        sns_topic = generate_sns_topic(settings.SNS_LOAN_PAYMENT)
-        arn = sns.get_arn_by_name(sns_topic)
-        attribute = sns.make_attributes(type='response', status='success')
-
-        payload = {'operation_id': external_operation_id}
-
-        if SEND_AWS_SNS:
-            sns.push(arn, attribute, payload)
-            self.log.info("SNS Push  payload RequestorPayment Services to SNS_LOAN_PAYMENT")
-        else:
-            self.log.info("SNS Push  payload ")
-            self.log.info(str(payload))
