@@ -4,6 +4,7 @@ from django import forms
 from .models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount
 from django.db.models import Sum
 from decimal import Decimal
+import logging
 
 
 class UpdateBalanceAccountService(Service):
@@ -28,6 +29,9 @@ class UpdateBalanceAccountService(Service):
 
 
 class CreateJournalService(Service):
+    log = logging.getLogger("info_logger")
+
+
     transaction_type_id = forms.IntegerField(required=True)
     from_account_id = forms.IntegerField(required=True)
     to_account_id = forms.IntegerField(required=True)
@@ -35,6 +39,7 @@ class CreateJournalService(Service):
     total_amount = forms.DecimalField(required=True)
 
     def clean(self):
+        self.log.info("CreateJournalService INIT clean")
         total_cost = 0
         cleaned_data = super().clean()
         transaction_type_id = cleaned_data.get('transaction_type_id')
@@ -48,15 +53,19 @@ class CreateJournalService(Service):
             Account.objects.get(id=to_account_id)
 
             balance_from_account = DWHBalanceAccount.objects.get(account=from_account)
+            balance_from_account_amount = Decimal(balance_from_account.balance_account_amount)
 
-            if balance_from_account < total_amount:
+            if balance_from_account_amount < total_amount:
                 raise forms.ValidationError("la cuenta de " + str(from_account.name) + "No tiene el monto suficiente")
         except Exception as e:
             raise forms.ValidationError(str(e))
+        self.log.info("CreateJournalService END clean")
+
 
         # TODO: VALIDAR QUE TIENE LOS MONTOS LA CUENTA DE DONDE PROVIENEN LOS INGRESOS
 
     def process(self):
+        self.log.info("CreateJournalService INIT process")
         transaction_type_id = self.cleaned_data['transaction_type_id']
         from_account_id = self.cleaned_data['from_account_id']
         to_account_id = self.cleaned_data['to_account_id']
@@ -87,11 +96,13 @@ class CreateJournalService(Service):
                 'account_id': to_account_id
             }
         )
+        self.log.info("CreateJournalService END process")
 
         return journal
 
 
 class AddPostingToJournalService(Service):
+    log = logging.getLogger("info_logger")
     journal_id = forms.IntegerField(required=True)
     from_account_id = forms.IntegerField(required=True)
     to_account_id = forms.IntegerField(required=True)
@@ -99,6 +110,7 @@ class AddPostingToJournalService(Service):
     total_amount = forms.DecimalField(required=True)
 
     def clean(self):
+        self.log.info("AddPostingToJournalService INIT clean")
         total_cost = 0
         cleaned_data = super().clean()
         journal_id = cleaned_data.get('journal_id')
@@ -111,10 +123,13 @@ class AddPostingToJournalService(Service):
             Account.objects.get(id=to_account_id)
         except Exception as e:
             raise forms.ValidationError(str(e))
+        self.log.info("AddPostingToJournalService END clean")
+
 
         # TODO: VALIDAR QUE TIENE LOS MONTOS LA CUENTA DE DONDE PROVIENEN LOS INGRESOS
 
     def process(self):
+        self.log.info("AddPostingToJournalService INIT process")
         journal_id = self.cleaned_data['journal_id']
         from_account_id = self.cleaned_data['from_account_id']
         to_account_id = self.cleaned_data['to_account_id']
@@ -142,6 +157,7 @@ class AddPostingToJournalService(Service):
                 'account_id': to_account_id
             }
         )
+        self.log.info("AddPostingToJournalService END process")
 
         return journal
 

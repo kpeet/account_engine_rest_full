@@ -13,16 +13,26 @@ CUMPLO_COST_ACCOUNT = 1
 SEND_AWS_SNS = True
 
 
-def costTransaction(transaction_cost_list, journal, asset_type, from_account):
+def costTransaction(self, transaction_cost_list, journal, asset_type, from_account):
     for requester_cost in transaction_cost_list:
+        cost_list_to_paysheet = []
+        cost_account_id = requester_cost.cleaned_data['account_engine_properties']['destination_account']['id']
+        cost_amount = Decimal(requester_cost.cleaned_data['amount'])
+        paysheet_type = "cost"
         add_posting_to_journal_input = {
             'journal_id': journal.id,
             'from_account_id': from_account.id,
-            'to_account_id': requester_cost.cleaned_data['account_engine_properties']['destination_account']['id'],
+            'to_account_id': cost_account_id,
             'asset_type': asset_type.id,
-            'total_amount': Decimal(requester_cost.cleaned_data['amount']),
+            'total_amount': cost_amount,
         }
         AddPostingToJournalService.execute(add_posting_to_journal_input)
+        cost_list_to_paysheet.append(
+            {"cost_account_id": cost_account_id, "from_account": from_account.id, "cost_amount": cost_amount})
+
+    for cost_to_paysheet in cost_list_to_paysheet:
+
+        send_AWS_SNS_treasury_paysheet_line(self, cost_to_paysheet["cost_account_id"], cost_to_paysheet["from_account"], cost_to_paysheet["cost_amount"], paysheet_type)
 
 
 def send_AWS_SNS_treasury_paysheet_line(self, to_account, from_account, transfer_amount, paysheet_type):
@@ -74,6 +84,7 @@ def send_AWS_SNS_treasury_paysheet_line(self, to_account, from_account, transfer
         self.log.info("SNS Push  payload ")
         self.log.info(str(payload))
 
+
 def send_aws_sns_to_loans_requestor_payment_confirmation(self, external_operation_id):
     sns = SnsServiceLibrary()
     sns_topic = generate_sns_topic(settings.SNS_LOAN_PAYMENT)
@@ -88,6 +99,7 @@ def send_aws_sns_to_loans_requestor_payment_confirmation(self, external_operatio
     else:
         self.log.info("SNS Push  payload ")
         self.log.info(str(payload))
+
 
 def send_aws_sns_loans_investment_instalment_confirmation(self, external_investment_instalment, status):
     sns = SnsServiceLibrary()

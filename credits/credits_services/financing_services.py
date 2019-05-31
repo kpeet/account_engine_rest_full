@@ -161,21 +161,6 @@ class FinanceOperationByInvestmentTransaction(Service):
         # Traigo la cuenta de cumplo asesorias
         cumplo_cost_account = Account.objects.get(id=CUMPLO_COST_ACCOUNT)
 
-
-        #
-        # # Creacion de asiento
-        # journal = Journal.objects.create(batch=None, gloss=journal_transaction.description,
-        #                                  journal_transaction=journal_transaction)
-        #
-        # # Descuento a la cuenta del inversionista
-        # posting_from = Posting.objects.create(account=from_account, asset_type=asset_type, journal=journal,
-        #                                       amount=(Decimal(total_amount) * -1))
-        #
-        # # Asignacion de inversionista a operacion
-        # posting_to = Posting.objects.create(account=to_operation_account, asset_type=asset_type, journal=journal,
-        #                                     amount=Decimal(investment_amount))
-
-
         # Posting Operation v/s Investor, T Accounts
         ###########################################
         create_journal_input = {
@@ -189,7 +174,7 @@ class FinanceOperationByInvestmentTransaction(Service):
 
         # POSTING inversionista v/s costos cumplo
         if investment_costs:
-            costTransaction(transaction_cost_list=investment_costs, journal=journal, asset_type=asset_type,
+            costTransaction(self,transaction_cost_list=investment_costs, journal=journal, asset_type=asset_type,
                             from_account=from_account)
 
         # TODO: definir transacción de financimiento

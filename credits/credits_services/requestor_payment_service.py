@@ -108,6 +108,7 @@ class RequesterPaymentFromOperation(Service):
         # TODO: modificar estos valores en duro
         BILLING_ENTITY=True
         transaction_type = 5  # Pago a solicitante
+        paysheet_type="requestor"
         # Init Data
         account = self.cleaned_data['account']
         total_amount = self.cleaned_data['total_amount']
@@ -139,7 +140,7 @@ class RequesterPaymentFromOperation(Service):
             # Posting Operation v/s Requestor, T Accounts
             # Cost Posting Process
             #######################
-            costTransaction(transaction_cost_list=requester_costs, journal=journal, asset_type=asset_type, from_account=to_requester_account)
+            costTransaction(self, transaction_cost_list=requester_costs, journal=journal, asset_type=asset_type, from_account=to_requester_account)
 
     ###### SI ES facturABLE el COSTO AL SOLICITANTE###############
         else:
@@ -160,7 +161,7 @@ class RequesterPaymentFromOperation(Service):
             # Posting Operation v/s Requestor, T Accounts
             # Cost Posting Process
             #######################
-            costTransaction(transaction_cost_list=requester_costs, journal=journal, asset_type=asset_type,
+            costTransaction(self, transaction_cost_list=requester_costs, journal=journal, asset_type=asset_type,
                     from_account=from_credit_operation_account)
 
     ###### NO ES facturABLE el COSTO AL SOLICITANTE###############
@@ -181,7 +182,7 @@ class RequesterPaymentFromOperation(Service):
         #Envio a Paysheet
         #self.send_AWS_SNS_Treasury(to_requester_account=to_requester_account, cumplo_operation_bank_account=cumplo_operation_bank_account, transfer_amount=transfer_amount)
 
-        send_AWS_SNS_treasury_paysheet_line(self, to_account=to_requester_account, from_account=cumplo_operation_bank_account, transfer_amount=transfer_amount)
+        send_AWS_SNS_treasury_paysheet_line(self, to_account=to_requester_account, from_account=cumplo_operation_bank_account, transfer_amount=transfer_amount, paysheet_type=paysheet_type)
         #Notificacion de Nevio a paysheet a LOANS
         send_aws_sns_to_loans_requestor_payment_confirmation(self, external_operation_id=external_operation_id)
         #self.send_aws_sns_to_loans(external_operation_id=external_operation_id)
