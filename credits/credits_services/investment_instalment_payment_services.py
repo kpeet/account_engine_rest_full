@@ -1,22 +1,15 @@
 from service_objects.services import Service
-from service_objects.fields import MultipleFormField, ModelField
+from service_objects.fields import MultipleFormField
 from django import forms
-from account_engine.models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount
-from account_engine.account_engine_services import UpdateBalanceAccountService
-from django.db.models import Sum
+from account_engine.models import JournalTransactionType, Journal, AssetType, Account, DWHBalanceAccount
 from credits.models import CreditOperation, Instalment
 from django.forms.models import model_to_dict
 from decimal import Decimal
-from .base_forms import CostForm, InstalmentsForms, PaymentToInvestorForm
-from .helper_services import costTransaction
+from .base_forms import PaymentToInvestorForm
 from account_engine.models import BankAccount
 from account_engine.account_engine_services import CreateJournalService
 import logging
-from sns_sqs_services.services import SnsService as SnsServiceLibrary
-from sns_sqs_services.services import SqsService
-from django.conf import settings
-from core_account_engine.utils import generate_sns_topic
-from .helper_services import CUMPLO_COST_ACCOUNT, SEND_AWS_SNS, send_AWS_SNS_treasury_paysheet_line
+from .helper_services import send_AWS_SNS_treasury_paysheet_line, send_aws_sns_loans_investment_instalment_confirmation
 
 
 class InvestorPaymentFromOperation(Service):
@@ -133,6 +126,7 @@ class InvestorPaymentFromOperation(Service):
                 total_investment_instalment - instalment_amount))
 
     def process(self):
+        sns_success_status="success"
         self.log.info("InvestorPaymentFromOperation:: process start")
         transaction_type = 7  # pago de investment instalment a inversionista
         # Init Data
@@ -180,16 +174,14 @@ class InvestorPaymentFromOperation(Service):
                 'asset_type': asset_type.id,
                 'total_amount': investor_amount,
             }
-            self.log.info("FLAG 2")
             journal = CreateJournalService.execute(create_journal_input)
-            self.log.info("FLAG 3")
+
             cumplo_operation_bank_account = Account.objects.get(external_account_type_id=4, external_account_id=2)
-            self.log.info("FLAG 4")
+
             self.log.info(str(external_investment_instalment))
 
-            #self.send_aws_sns_loans( external_investment_instalment=external_investment_instalment)
+            send_aws_sns_loans_investment_instalment_confirmation(self, external_investment_instalment=external_investment_instalment, status=sns_success_status)
 
-            self.log.info("FLAG 5")
             self.log.info("investor_payment.cleaned_data[total_amount]")
             self.log.info(str(investor_payment.cleaned_data['total_amount']))
 
@@ -200,16 +192,3 @@ class InvestorPaymentFromOperation(Service):
 
         return model_to_dict(journal)
 
-
-    def send_aws_sns_loans(self, external_investment_instalment):
-        self.log.info("SEND to LOANS InvesmentInstalment Confirmation")
-        sqs=SqsService()
-        payload = {
-            "result": "OK",
-            "invesment_instalment_id": external_investment_instalment
-        }
-
-        sqs.push('sqs_invesment_instalment_loans_notification',payload)
-        logging.getLogger("error_logger").error(
-            "send to sqs_invesment_instalment_loans_notification :: external_investment_instalment" + str(
-                external_investment_instalment))

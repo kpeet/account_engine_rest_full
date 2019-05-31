@@ -6,6 +6,7 @@ from .credits_services.financing_services import FinanceOperationByInvestmentTra
 from .credits_services.requestor_payment_service import RequesterPaymentFromOperation
 from .credits_services.instalment_payment_service import InstalmentPayment
 from .credits_services.investment_instalment_payment_services import InvestorPaymentFromOperation
+from .credits_services.helper_services import send_aws_sns_loans_investment_instalment_confirmation
 import logging
 
 ASSET_TYPE = 1
@@ -377,6 +378,9 @@ class JournalInvestorPaymentFromInstalmentOperationSerializer(serializers.Serial
                 "asset_type": ASSET_TYPE
             }
         )
+
+
+
 
         return requester_payment_from_operation
 

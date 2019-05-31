@@ -74,7 +74,6 @@ def send_AWS_SNS_treasury_paysheet_line(self, to_account, from_account, transfer
         self.log.info("SNS Push  payload ")
         self.log.info(str(payload))
 
-
 def send_aws_sns_to_loans_requestor_payment_confirmation(self, external_operation_id):
     sns = SnsServiceLibrary()
     sns_topic = generate_sns_topic(settings.SNS_LOAN_PAYMENT)
@@ -82,6 +81,21 @@ def send_aws_sns_to_loans_requestor_payment_confirmation(self, external_operatio
     attribute = sns.make_attributes(type='response', status='success')
 
     payload = {'operation_id': external_operation_id}
+
+    if SEND_AWS_SNS:
+        sns.push(arn, attribute, payload)
+        self.log.info("SNS Push  payload RequestorPayment Services to SNS_LOAN_PAYMENT")
+    else:
+        self.log.info("SNS Push  payload ")
+        self.log.info(str(payload))
+
+def send_aws_sns_loans_investment_instalment_confirmation(self, external_investment_instalment, status):
+    sns = SnsServiceLibrary()
+    sns_topic = generate_sns_topic(settings.SNS_LOAN_INVESTMENT_INSTALMENT_PAYMENT)
+    arn = sns.get_arn_by_name(sns_topic)
+    attribute = sns.make_attributes(type='response', status=status)
+
+    payload = {'invesment_instalment_id': external_investment_instalment}
 
     if SEND_AWS_SNS:
         sns.push(arn, attribute, payload)
