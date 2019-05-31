@@ -8,7 +8,7 @@
     image_name: 002311116463.dkr.ecr.us-west-2.amazonaws.com/nginx-api-account-engine-common
     image_tag: 'staging'
     registry: https://002311116463.dkr.ecr.us-west-2.amazonaws.com
-    dockercfg_service: dockercfg-generator-staging
+    dockercfg_service: dockercfg-generator
   - name: push app staging
     service: api-account-engine-common-staging
     type: push
