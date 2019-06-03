@@ -18,6 +18,9 @@
           "value": "api_account_engine_cumplo.settings.staging"
         }
       ],
+      "command": [
+        "gunicorn --worker-class=gevent --worker-connections=1000 --workers=3 api_account_engine_cumplo.wsgi -b 0.0.0.0:8000"
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
