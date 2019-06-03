@@ -1,0 +1,66 @@
+version: "3"
+services:
+  nginx:
+    image: kimchi/api-account-engine-common-nginx
+    build:
+      context: config/nginx
+      dockerfile: Dockerfile
+    environment:
+      - NGINX_DOMAIN=localhost
+      - NGINX_DJANGO_PORT=8000
+      - NGINX_DJANGO_SERVER=api
+      - HTTP_TYPE=http
+      - ALLOW_CORS_DOMAIN=api\.cumplo\.local
+    command: /bin/sh -c "envsubst < /etc/nginx/conf.d/nginx.conf.template > /etc/nginx/conf.d/api.conf && nginx -g 'daemon off;'"
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+  api:
+    image: kimchi/api-account-engine-common
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+      - ENV=local
+    env_file:
+      - .env
+    environment:
+      - SECRET_KEY_ACCOUNT_ENGINE='secretkey'
+      - DB_NAME=api_account_engine_common
+      - DB_USER=root
+      - DB_PASSWORD=dummypass
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      # SNS SERVICES
+      - SNS_INVESTMENT_PAYMENT='cl-staging-investment-payment'
+      - SNS_INSTALMENT_PAYMENT='instalment-payment'
+      - SNS_LOAN_PAYMENT='loan-payment'
+      - SNS_TREASURY_PAYSHEET_REGISTRY='paysheet-registry'
+      - AWS_REGION_OHIO=us-east-2
+      - AWS_REGION_VIRGINIA=us-east-1
+      - AWS_REGION_NAME=us-east-1
+      - SNS_LOAN_INVESTMENT_INSTALMENT_PAYMENT='investment-instalment'
+      ### Libreria SNS SQS #######
+      - SNS_COUNTRY_PREFIX='cl'
+      - SNS_ENV_PREFIX='staging'
+    volumes:
+        - "./src:/src"
+    depends_on:
+      - mysql
+    command: >
+      bash -c "/src/wait-for-it.sh mysql:3306 -t 60
+      && python manage.py collectstatic --noinput
+      && python manage.py migrate
+      && python manage.py runserver 0.0.0.0:8000"
+  mysql:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=dummypass
+      - MYSQL_DATABASE=api_account_engine_common
+    volumes:
+    - ./volumen/mysql:/var/lib/mysql
+    command:
+    - --character-set-server=utf8
+    - --collation-server=utf8_general_ci
+    - --skip-character-set-client-handshake
