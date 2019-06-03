@@ -8,8 +8,8 @@
       "memory": 1024,
       "portMappings": [
         {
-          "hostPort": 8001,
-          "containerPort": 8001
+          "hostPort": 8000,
+          "containerPort": 8000
         }
       ],
       "environment":[
@@ -58,7 +58,7 @@
         },
         {
           "name": "NGINX_DJANGO_PORT",
-          "value": "8001"
+          "value": "8000"
         },
         {
           "name": "HTTP_TYPE",
