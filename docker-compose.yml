@@ -60,6 +60,8 @@ services:
       - MYSQL_DATABASE=api_account_engine_common
     volumes:
     - ./volumen/mysql:/var/lib/mysql
+    ports:
+      - 3307:3306
     command:
     - --character-set-server=utf8
     - --collation-server=utf8_general_ci

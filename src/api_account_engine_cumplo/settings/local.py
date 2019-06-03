@@ -8,19 +8,19 @@ from corsheaders.defaults import default_headers
 #}
 #INTERNAL_IPS = ['127.0.0.1']
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'account_engine_cumplo',
-#         'USER': 'root',
-#         'PASSWORD': 'pa55w0rd',
-#         'HOST': 'localhost',
-#         'PORT': '3306',
-#         'OPTIONS': {
-#                     'charset': 'utf8mb4',
-#                 },
-#             }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'api_account_engine_common',
+        'USER': 'root',
+        'PASSWORD': 'dummypass',
+        'HOST': 'localhost',
+        'PORT': '3307',
+        'OPTIONS': {
+                    'charset': 'utf8mb4',
+            },
+        }
+}
 
 INSTALLED_APPS += ['corsheaders']#https://pypi.org/project/django-cors-headers/
 
