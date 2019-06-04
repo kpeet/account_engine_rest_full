@@ -4,7 +4,7 @@ from django import forms
 from account_engine.models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount, BankAccount
 from account_engine.account_engine_services import UpdateBalanceAccountService, CreateJournalService
 from django.db.models import Sum
-from credits.models import CreditOperation
+from credits.models import CreditOperation, BankTransaction
 from django.forms.models import model_to_dict
 from decimal import Decimal
 from .base_forms import CostForm
@@ -185,6 +185,7 @@ class RequesterPaymentFromOperation(Service):
             journal_transaction_reinbursable_cost = JournalTransactionType.objects.get(id=REINBURSABLE_COSTS_TYPE)
             cumplo_operation_bank_account = Account.objects.get(id=CUMPLO_OPERATION_ACCOUNT_ID)
 
+
             create_journal_input = {
                 'transaction_type_id': journal_transaction_reinbursable_cost.id,
                 'from_account_id': to_requester_account.id,
@@ -194,7 +195,7 @@ class RequesterPaymentFromOperation(Service):
             }
             journal = CreateJournalService.execute(create_journal_input)
 
-            send_AWS_SNS_treasury_paysheet_line(self, to_account=to_requester_account, from_account=cumplo_operation_bank_account, transfer_amount=transfer_amount, paysheet_type=paysheet_type)
+            send_AWS_SNS_treasury_paysheet_line(self, to_account=to_requester_account, from_account=cumplo_operation_bank_account, transfer_amount=transfer_amount, paysheet_type=paysheet_type, journal=journal)
 
         #Notificacion de envio  a LOANS
         send_aws_sns_to_loans_requestor_payment_confirmation(self, external_operation_id=external_operation_id)

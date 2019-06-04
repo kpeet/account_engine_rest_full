@@ -1,5 +1,6 @@
 from django.db import models
-from account_engine.models import OperationAccount, MixinDateModel,Account
+from account_engine.models import OperationAccount, MixinDateModel, Account, AssetType, Journal, BankAccount
+
 
 # Create your models here.
 
@@ -14,15 +15,13 @@ class CostAccountProperties(MixinDateModel):
 
 
 class CreditsCost(MixinDateModel):
-    cost_amount=models.DecimalField(null=False, decimal_places=2, max_digits=20)
+    cost_amount = models.DecimalField(null=False, decimal_places=2, max_digits=20)
     billing_properties = models.ForeignKey(BillingProperties, null=False, on_delete=models.PROTECT)
     account_engine_properties = models.ForeignKey(CostAccountProperties, null=False, on_delete=models.PROTECT)
 
 
-
-
 class CreditOperation(Account):
-    ACCOUNT_TYPE=3
+    ACCOUNT_TYPE = 3
     STATE_BEING_CREDIT_OPERATION = 'being_credit_operation'
     STATE_FINANCED = 'financed'
     STATE_REQUESTOR_PAYMENT = 'requestor_payment'
@@ -101,11 +100,35 @@ class InvestmentCreditOperation(MixinDateModel):
     investment_amount = models.DecimalField(null=False, decimal_places=2, max_digits=20)
     investment_cost = models.ForeignKey(CreditsCost, null=True, on_delete=models.PROTECT)
 
+
 class Instalment(MixinDateModel):
     """
 
     """
     credit_operation = models.ForeignKey(CreditOperation, default=None, null=False, on_delete=models.PROTECT)
     amount = models.DecimalField(null=False, default=0, max_digits=20, decimal_places=2)
-    external_instalment_id = models.IntegerField(null=False, unique=True, default=None,)
+    external_instalment_id = models.IntegerField(null=False, unique=True, default=None, )
 
+
+class BankTransaction(MixinDateModel):
+    STATE_SEND_TO_TREASURY = 'pending'
+    STATE_CONFIRM_BY_TREASURY = 'completed'
+    STATES = (
+        (STATE_SEND_TO_TREASURY, 'Enviado a tesoreria'),
+        (STATE_CONFIRM_BY_TREASURY, 'Confirmado por tesoreria'),
+
+    )
+    origin_account = models.ForeignKey(BankAccount, related_name='origin_account', default=None, null=False,
+                                       on_delete=models.PROTECT)
+    beneficiary_name = models.CharField(null=False, max_length=250)
+    document_number = models.IntegerField(null=False, )
+    destination_account = models.ForeignKey(BankAccount, related_name='destination_account', default=None, null=False,
+                                            on_delete=models.PROTECT)
+    transfer_amount = models.DecimalField(null=False, default=0, max_digits=20, decimal_places=2)
+
+    # currency_type =  models.ForeignKey(AssetType, default=None, null=False, on_delete=models.PROTECT)
+
+    paysheet_line_type = models.CharField(null=False, max_length=50)
+    bank_code = models.IntegerField(null=False, )
+    state = models.CharField(max_length=30, choices=STATES, default=STATE_SEND_TO_TREASURY)
+    journal = models.OneToOneField(Journal, null=False, on_delete=models.PROTECT)

@@ -177,7 +177,7 @@ class InvestorPaymentFromOperation(Service):
             }
             journal = CreateJournalService.execute(create_journal_input)
 
-            cumplo_operation_bank_account = Account.objects.get(external_account_type_id=4, external_account_id=2)
+
 
             self.log.info(str(external_investment_instalment))
 
@@ -205,7 +205,7 @@ class InvestorPaymentFromOperation(Service):
                 send_AWS_SNS_treasury_paysheet_line(self, to_account=investor_account,
                                                     from_account=cumplo_operation_bank_account,
                                                     transfer_amount=investor_amount,
-                                                    paysheet_type="investor")
+                                                    paysheet_type="investor", journal=journal)
 
         return model_to_dict(journal)
 
