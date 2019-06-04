@@ -4,7 +4,7 @@ from django import forms
 from account_engine.models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount
 from account_engine.account_engine_services import UpdateBalanceAccountService
 from django.db.models import Sum
-from credits.models import CreditOperation
+from credits.models import CreditOperation, InvestmentCreditOperation
 from django.forms.models import model_to_dict
 from decimal import Decimal
 from .base_forms import CostForm
@@ -12,7 +12,7 @@ from .helper_services import costTransaction
 from sns_sqs_services.services import SnsService as SnsServiceLibrary
 from core_account_engine.utils import generate_sns_topic
 from django.conf import settings
-from .helper_services import CUMPLO_COST_ACCOUNT, SEND_AWS_SNS
+from .helper_services import CUMPLO_COST_ACCOUNT, CUMPLO_OPERATION_ACCOUNT_ID, SEND_AWS_SNS
 import logging
 from account_engine.account_engine_services import CreateJournalService
 
@@ -52,6 +52,15 @@ class FinanceOperationByInvestmentTransaction(Service):
         external_operation_id = cleaned_data.get('external_operation_id')
         investor_account_id = cleaned_data.get('account')
         list_validation_investment_error = []
+
+        new_investment = InvestmentCreditOperation.objects.filter(investment_id=investment_id)
+        if new_investment.exists():
+            investment_error = {
+                "error": 'Inversion ya ingresada'
+            }
+            list_validation_investment_error.append(investment_error)
+
+
 
         for invesment_cost in cleaned_data.get('investment_costs'):
             total_cost = total_cost + invesment_cost.cleaned_data.get('amount')
@@ -104,32 +113,17 @@ class FinanceOperationByInvestmentTransaction(Service):
                 else:
                     raise ValueError("Investor Type Error")
                 if SEND_AWS_SNS:
-
-
-
-                    #######################################################################################################
-                    #######################################################################################################
-                    #######################################################################################################
-                    #######################################################################################################
-
-
                     sns = SnsServiceLibrary()
-
-                    #attribute = sns.make_attributes(investor_type, "response", "fail")
+                    sns_topic = generate_sns_topic(settings.SNS_INVESTMENT_PAYMENT)
                     attribute = sns.make_attributes(entity=investor_type, type='response', status='fail')
 
-                    arn = sns.get_arn_by_name(settings.SNS_INVESTMENT_PAYMENT)
+                    arn = sns.get_arn_by_name(sns_topic)
                     payload = {
                         "message": str(list_validation_investment_error),
                         "investment_id": investment_id,
                     }
 
                     sns.push(arn, attribute, payload)
-
-                #######################################################################################################
-                #######################################################################################################
-                #######################################################################################################
-                #######################################################################################################
 
                 raise forms.ValidationError(list_validation_investment_error)
 
@@ -174,8 +168,18 @@ class FinanceOperationByInvestmentTransaction(Service):
 
         # POSTING inversionista v/s costos cumplo
         if investment_costs:
-            costTransaction(self,transaction_cost_list=investment_costs, journal=journal, asset_type=asset_type,
+            total_cost_amount=costTransaction(self,transaction_cost_list=investment_costs, journal=journal, asset_type=asset_type,
                             from_account=from_account)
+
+        InvestmentCreditOperation.objects.create(
+            investor=from_account,
+            investment_id= investment_id,
+            credits_operation= to_operation_account,
+            total_amount=total_amount,
+            investment_amount= Decimal(investment_amount)
+
+        )
+
 
         # TODO: definir transacción de financimiento
 
@@ -195,21 +199,9 @@ class FinanceOperationByInvestmentTransaction(Service):
 
             self.log.info("SNS start Financing Services to SNS_INVESTMENT_PAYMENT")
             sns = SnsServiceLibrary()
-            self.log.info("SNS_INVESTMENT_PAYMENT")
-            self.log.info(settings.SNS_INVESTMENT_PAYMENT)
+            sns_topic = generate_sns_topic(settings.SNS_INVESTMENT_PAYMENT)
 
-            self.log.info("AWS_REGION_NAME")
-            self.log.info(settings.AWS_REGION_NAME)
-
-            self.log.info("AWS_ACCESS_KEY_ID")
-            self.log.info(settings.AWS_ACCESS_KEY_ID)
-
-            self.log.info("AWS_SECRET_ACCESS_KEY")
-            self.log.info(settings.AWS_SECRET_ACCESS_KEY)
-
-
-
-            arn = sns.get_arn_by_name(settings.SNS_INVESTMENT_PAYMENT)
+            arn = sns.get_arn_by_name(sns_topic)
             self.log.info("ARN SNS AWS INVESTMENT PAYMeNT")
             self.log.info(arn)
             attribute = sns.make_attributes(entity=investor_type, type='response', status='success')

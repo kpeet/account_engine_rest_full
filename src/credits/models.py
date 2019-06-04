@@ -19,13 +19,6 @@ class CreditsCost(MixinDateModel):
     account_engine_properties = models.ForeignKey(CostAccountProperties, null=False, on_delete=models.PROTECT)
 
 
-class InvestmentCreditOperation(MixinDateModel):
-    investor = models.ForeignKey(Account, related_name='investor', null=False, on_delete=models.PROTECT)
-    credits_operation = models.ForeignKey(OperationAccount, null=False, on_delete=models.PROTECT)
-    investment_id = models.IntegerField(null=False, unique=True)
-    total_amount = models.DecimalField(null=False, decimal_places=2, max_digits=20)
-    investment_amount = models.DecimalField(null=False, decimal_places=2, max_digits=20)
-    investment_cost = models.ForeignKey(CreditsCost, null=False, on_delete=models.PROTECT)
 
 
 class CreditOperation(Account):
@@ -100,6 +93,14 @@ class CreditOperation(Account):
         return self, True
 
 
+class InvestmentCreditOperation(MixinDateModel):
+    investor = models.ForeignKey(Account, related_name='investor', null=False, on_delete=models.PROTECT)
+    credits_operation = models.ForeignKey(CreditOperation, null=False, on_delete=models.PROTECT)
+    investment_id = models.IntegerField(null=False, unique=True)
+    total_amount = models.DecimalField(null=False, decimal_places=2, max_digits=20)
+    investment_amount = models.DecimalField(null=False, decimal_places=2, max_digits=20)
+    investment_cost = models.ForeignKey(CreditsCost, null=True, on_delete=models.PROTECT)
+
 class Instalment(MixinDateModel):
     """
 
@@ -107,3 +108,4 @@ class Instalment(MixinDateModel):
     credit_operation = models.ForeignKey(CreditOperation, default=None, null=False, on_delete=models.PROTECT)
     amount = models.DecimalField(null=False, default=0, max_digits=20, decimal_places=2)
     external_instalment_id = models.IntegerField(null=False, unique=True, default=None,)
+

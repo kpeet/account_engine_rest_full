@@ -137,12 +137,14 @@ class CreditOperationSerializer2(serializers.Serializer):
 
     def validate(self, data):
         try:
+            print("flag validate 1")
 
             Account.objects.get(external_account_id=data['requester_account_id'],
                                 external_account_type_id=CreditOperationSerializer2.EXTERNAL_REQUESTOR_ACCOUNT_TYPE)
 
             operation = CreditOperation.objects.filter(external_account_id=data['external_account_id'],
                                                        external_account_type_id=CreditOperation.ACCOUNT_TYPE)
+            print("flag validate 2")
             if operation.exists():
                 raise serializers.ValidationError("operation_id ya ingresado")
 
@@ -157,13 +159,15 @@ class CreditOperationSerializer2(serializers.Serializer):
     def create(self, validated_data):
         requester = Account.objects.get(external_account_id=validated_data['requester_account_id'],
                                         external_account_type_id=CreditOperationSerializer2.EXTERNAL_REQUESTOR_ACCOUNT_TYPE)
-
-        name = "Operacion " + str(validated_data['operation_id'])
+        print("flag create 1")
+        print(str(validated_data))
+        name = "Operacion " + str(validated_data['external_account_id'])
         create_operation = CreditOperation.objects.create(external_account_id=validated_data['external_account_id'],
                                                           name=name,
                                                           requestor_account=requester,
                                                           financing_amount=validated_data['financing_amount'],
                                                           external_account_type_id=CreditOperation.ACCOUNT_TYPE)
+        print("flag create 2")
         return create_operation
 
     def update(self, instance, validated_data):
@@ -343,12 +347,7 @@ class JournalInvestorPaymentFromInstalmentOperationSerializer(serializers.Serial
             raise serializers.ValidationError("Must be positive ")
 
     def validate_external_operation_id(self, value):
-        """
-               Check that the blog post is about Django.
-               """
 
-        print("validate_external_operation_id")
-        print(value)
         operation = CreditOperation.objects.filter(external_account_id=value)
         if operation.exists():
             return value
@@ -364,8 +363,7 @@ class JournalInvestorPaymentFromInstalmentOperationSerializer(serializers.Serial
 
         # requester_account = Account.objects.get(external_account_id=validated_data['requester_account_id'],
         #                                         external_account_type_id=validated_data['requester_account_type'])
-        print("external_operation_id")
-        print(str(validated_data['external_operation_id']))
+
 
         self.log.info("SEND TO InvestorPaymentFromOperation SERVICE" + str(validated_data['external_operation_id']))
 

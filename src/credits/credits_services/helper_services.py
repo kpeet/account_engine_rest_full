@@ -1,6 +1,6 @@
 from account_engine.models import Account, Posting
 from decimal import Decimal
-from account_engine.account_engine_services import AddPostingToJournalService
+from account_engine.account_engine_services import AddPostingToJournalService, REINBURSABLE_COSTS_TYPE
 from sns_sqs_services.services import SnsService as SnsServiceLibrary
 from core_account_engine.utils import generate_sns_topic
 from account_engine.models import BankAccount
@@ -10,14 +10,20 @@ from credits.models import CreditOperation
 from django.forms.models import model_to_dict
 
 CUMPLO_COST_ACCOUNT = 1
+CUMPLO_OPERATION_ACCOUNT_ID = 2
+REINBURSABLE_COSTS_TYPE = REINBURSABLE_COSTS_TYPE
+
 SEND_AWS_SNS = True
+AUTOMATIC_BANK_TRANSFER=True
 
 
 def costTransaction(self, transaction_cost_list, journal, asset_type, from_account):
+    total_cost_amount=0
     for requester_cost in transaction_cost_list:
         cost_list_to_paysheet = []
         cost_account_id = requester_cost.cleaned_data['account_engine_properties']['destination_account']['id']
         cost_amount = Decimal(requester_cost.cleaned_data['amount'])
+        total_cost_amount= total_cost_amount+ cost_amount
         paysheet_type = "cost"
         add_posting_to_journal_input = {
             'journal_id': journal.id,
@@ -34,6 +40,7 @@ def costTransaction(self, transaction_cost_list, journal, asset_type, from_accou
 
         send_AWS_SNS_treasury_paysheet_line(self, cost_to_paysheet["cost_account_id"], cost_to_paysheet["from_account"], cost_to_paysheet["cost_amount"], paysheet_type)
 
+    return total_cost_amount
 
 def send_AWS_SNS_treasury_paysheet_line(self, to_account, from_account, transfer_amount, paysheet_type):
     self.log.info("SNS start RequestorPayment Services to SNS_TREASURY_PAYSHEET")
@@ -75,7 +82,7 @@ def send_AWS_SNS_treasury_paysheet_line(self, to_account, from_account, transfer
         "transfer_amount": f'{transfer_amount:.2f}',
         "currency_type": "CLP",
         "paysheet_line_type": paysheet_type,
-        "bank_code": to_requestor_account_bank.bank_code
+        "bank_code": to_requestor_account_bank.bank_code,
     }
     if SEND_AWS_SNS:
         sns.push(arn, attribute, payload)

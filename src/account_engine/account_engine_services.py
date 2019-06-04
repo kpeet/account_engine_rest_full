@@ -6,6 +6,12 @@ from django.db.models import Sum
 from decimal import Decimal
 import logging
 
+COLLECT_ACCOUNT_TYPE = 7
+PAY_ACCOUNT_TYPE = 6
+REINBURSABLE_COSTS_TYPE = 5
+CUMPLO_COSTS_ACCOUNT_TYPE = 4
+
+
 
 class UpdateBalanceAccountService(Service):
     account_id = forms.CharField(required=True, max_length=150)
@@ -30,7 +36,6 @@ class UpdateBalanceAccountService(Service):
 
 class CreateJournalService(Service):
     log = logging.getLogger("info_logger")
-
 
     transaction_type_id = forms.IntegerField(required=True)
     from_account_id = forms.IntegerField(required=True)
@@ -60,7 +65,6 @@ class CreateJournalService(Service):
         except Exception as e:
             raise forms.ValidationError(str(e))
         self.log.info("CreateJournalService END clean")
-
 
         # TODO: VALIDAR QUE TIENE LOS MONTOS LA CUENTA DE DONDE PROVIENEN LOS INGRESOS
 
@@ -124,7 +128,6 @@ class AddPostingToJournalService(Service):
         except Exception as e:
             raise forms.ValidationError(str(e))
         self.log.info("AddPostingToJournalService END clean")
-
 
         # TODO: VALIDAR QUE TIENE LOS MONTOS LA CUENTA DE DONDE PROVIENEN LOS INGRESOS
 

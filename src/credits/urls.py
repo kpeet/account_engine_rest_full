@@ -12,7 +12,4 @@ router = DefaultRouter()
 router.register(r'cost', InvestmentCostViewSet, basename='cost')
 router.register(r'credit_operation', CreditsOperationViewSet, basename='credit_operation2')
 
-
-
-
 urlpatterns = router.urls

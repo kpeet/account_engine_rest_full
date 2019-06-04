@@ -9,7 +9,7 @@ from .base_forms import PaymentToInvestorForm
 from account_engine.models import BankAccount
 from account_engine.account_engine_services import CreateJournalService
 import logging
-from .helper_services import send_AWS_SNS_treasury_paysheet_line, send_aws_sns_loans_investment_instalment_confirmation
+from .helper_services import send_AWS_SNS_treasury_paysheet_line, send_aws_sns_loans_investment_instalment_confirmation,AUTOMATIC_BANK_TRANSFER,REINBURSABLE_COSTS_TYPE, CUMPLO_OPERATION_ACCOUNT_ID
 
 
 class InvestorPaymentFromOperation(Service):
@@ -45,6 +45,7 @@ class InvestorPaymentFromOperation(Service):
                 raise forms.ValidationError("La Cuota No hay sido Ingresada en el proceso de pago de cuotas")
 
                 self.log.info("InvestorPaymentFromOperation:: FLAG 2")
+
         except Exception as e:
             raise forms.ValidationError(str(e))
 
@@ -185,10 +186,26 @@ class InvestorPaymentFromOperation(Service):
             self.log.info("investor_payment.cleaned_data[total_amount]")
             self.log.info(str(investor_payment.cleaned_data['total_amount']))
 
-            send_AWS_SNS_treasury_paysheet_line(self, to_account=investor_account,
-                                                from_account=cumplo_operation_bank_account,
-                                                transfer_amount=investor_amount,
-                                                paysheet_type="investor")
+            # AWS SNS Notification
+            #######################
+            # Envio a Paysheet
+            if AUTOMATIC_BANK_TRANSFER:
+                journal_transaction_reinbursable_cost = JournalTransactionType.objects.get(id=REINBURSABLE_COSTS_TYPE)
+                cumplo_operation_bank_account = Account.objects.get(id=CUMPLO_OPERATION_ACCOUNT_ID)
+
+                create_journal_input = {
+                    'transaction_type_id': journal_transaction_reinbursable_cost.id,
+                    'from_account_id': investor_account.id,
+                    'to_account_id': cumplo_operation_bank_account.id,
+                    'asset_type': asset_type.id,
+                    'total_amount': Decimal(investor_amount)
+                }
+                journal = CreateJournalService.execute(create_journal_input)
+
+                send_AWS_SNS_treasury_paysheet_line(self, to_account=investor_account,
+                                                    from_account=cumplo_operation_bank_account,
+                                                    transfer_amount=investor_amount,
+                                                    paysheet_type="investor")
 
         return model_to_dict(journal)
 

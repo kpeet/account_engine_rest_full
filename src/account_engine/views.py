@@ -115,7 +115,7 @@ class PositiveBalanceViewSet(ViewSet):
     """
 
     def list(self, request):
-
+        print("AQUI")
         queryset = DWHBalanceAccount.objects.values('account__name').filter(balance_account_amount__gt = 0).annotate(account_id=F('account__external_account_id'), account_type=F('account__external_account_type'), balance_account=F('balance_account_amount')  )#.extra(select={'blablabla': 'account__external_account_id'})
         #serializer = DWHBalanceAccountSerializer(queryset, many=True)
         return Response(queryset)

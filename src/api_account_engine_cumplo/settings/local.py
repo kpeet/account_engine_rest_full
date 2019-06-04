@@ -14,8 +14,8 @@ DATABASES = {
         'NAME': 'api_account_engine_common',
         'USER': 'root',
         'PASSWORD': 'dummypass',
-        'HOST': 'localhost',
-        'PORT': '3307',
+        'HOST': 'mysql',
+        'PORT': '3306',
         'OPTIONS': {
                     'charset': 'utf8mb4',
             },

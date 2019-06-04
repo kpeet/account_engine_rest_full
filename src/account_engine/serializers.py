@@ -244,7 +244,7 @@ class BankRegistrySerializer2(serializers.Serializer):
                                       external_account_type_id=validated_data['external_account_type'])
 
         create_bank_account = BankAccount.objects.create(account=account,
-                                                      bank_account_number=validated_data['external_account_type'],
+                                                      bank_account_number=validated_data['bank_account_number'],
                                                       bank_code=validated_data['bank_code'],
                                                       account_notification_email=validated_data[
                                                           'account_notification_email'],

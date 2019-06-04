@@ -32,7 +32,7 @@ class InstalmentPayment(Service):
     # 4- que los costos no sean mayor que el monto a transferir al solicitante
 
     def clean(self):
-        print("InstalmentPayment : clean")
+        self.log.info("InstalmentPayment Service : clean start")
         cleaned_data = super().clean()
 
         list_validation_payment_error = []
@@ -59,7 +59,6 @@ class InstalmentPayment(Service):
                 list_validation_payment_error.append(instalment_error)
 
         if len(list_validation_payment_error) > 0:
-
 
             if SEND_AWS_SNS:
 
@@ -88,12 +87,11 @@ class InstalmentPayment(Service):
             return cleaned_data
 
     def process(self):
-        print("InstalmentPayment : process")
+        self.log.info("InstalmentPayment Service : process start")
         transaction_type = 6  # Pago de cuotas
         # Init Data
         instalments_ok_for_notification = []
         for instalment in self.cleaned_data['instalment_list_to_pay']:
-            print("PROCESS FLAG 1")
             payer_account_id = instalment.cleaned_data['payer_account_id']
             external_operation_id = instalment.cleaned_data['external_operation_id']
             instalment_id = instalment.cleaned_data['instalment_id']
@@ -102,14 +100,11 @@ class InstalmentPayment(Service):
             pay_date = instalment.cleaned_data['pay_date']
             asset_type = instalment.cleaned_data['asset_type']
 
-            print("PROCESS FLAG 2")
             # Get and Process Data
             journal_transaction = JournalTransactionType.objects.get(id=transaction_type)
             to_operation_account = CreditOperation.objects.get(external_account_id=external_operation_id)
             from_payer_account = Account.objects.get(id=payer_account_id)
             asset_type = AssetType.objects.get(id=asset_type)
-            print("PROCESS FLAG 3::: to_operation_account")
-            print(str(to_operation_account))
 
             #Guardado de Couta
             new_instalment = Instalment()
@@ -117,12 +112,10 @@ class InstalmentPayment(Service):
             new_instalment.external_instalment_id = instalment_id
             new_instalment.credit_operation = to_operation_account
             new_instalment.save()
-            print("PROCESS FLAG 4")
 
 
             # Creacion de Posting
             try:
-                print("PROCESS FLAG 5")
                 create_journal_input = {
                     'transaction_type_id': journal_transaction.id,
                     'from_account_id': from_payer_account.id,
@@ -130,7 +123,6 @@ class InstalmentPayment(Service):
                     'asset_type': 1,
                     'total_amount': Decimal(instalment_amount + fine_amount),
                 }
-                print("PROCESS FLAG 6")
                 journal = CreateJournalService.execute(create_journal_input)
 
                 instalments_ok_for_notification.append(
