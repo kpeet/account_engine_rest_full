@@ -173,8 +173,12 @@ class FinanceOperationByInvestmentTransaction(Service):
 
         # POSTING inversionista v/s costos cumplo
         if investment_costs:
-            total_cost_amount=costTransaction(self,transaction_cost_list=investment_costs, journal=journal, asset_type=asset_type,
-                            from_account=from_account, journal_transaction_definition_id=JOURNAL_TRANSACTION_TRANSFER_COST_PAYMENT_BY_INVESTMENT_ID)
+            total_cost_amount=costTransaction(self,
+                                              transaction_cost_list=investment_costs,
+                                              journal=journal,
+                                              asset_type=asset_type,
+                                              from_account=from_account,
+                                              journal_transaction_definition_id=JOURNAL_TRANSACTION_TRANSFER_COST_PAYMENT_BY_INVESTMENT_ID)
 
         InvestmentCreditOperation.objects.create(
             investor=from_account,

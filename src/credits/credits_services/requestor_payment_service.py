@@ -1,7 +1,7 @@
 from service_objects.services import Service
 from service_objects.fields import MultipleFormField, ModelField
 from django import forms
-from account_engine.models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount, BankAccount
+from account_engine.models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount, BankAccount, BATCH_TRANSACTION_TYPE_REQUESTOR_PAYMENT_ID,JOURNAL_TRANSACTION_TRANSFER_REQUESTOR_PAYMENT_FROM_OPERATION_ID, JOURNAL_TRANSACTION_TRANSFER_COST_PAYMENT_FROM_REQUESTER_ID,JOURNAL_TRANSACTION_TRANSFER_IN_BANK_PROCESS_ID
 from account_engine.account_engine_services import UpdateBalanceAccountService, CreateJournalService
 from django.db.models import Sum
 from credits.models import CreditOperation, BankTransaction
@@ -108,6 +108,8 @@ class RequesterPaymentFromOperation(Service):
 
     def process(self):
         self.log.info("RequesterPaymentFromOperation Service : clean start")
+        self.log.info("RequesterPaymentFromOperation BATCH_TRANSACTION_TYPE_REQUESTOR_PAYMENT_ID ")
+        self.log.info(str(BATCH_TRANSACTION_TYPE_REQUESTOR_PAYMENT_ID))
         # TODO: modificar estos valores en duro
         BILLING_ENTITY=True
         paysheet_type="requestor"
@@ -121,7 +123,7 @@ class RequesterPaymentFromOperation(Service):
         asset_type = self.cleaned_data['asset_type']
 
         # Get and Process Data
-        journal_transaction = JournalTransactionType.objects.get(id=self.TRANSACTION_TYPE)
+        journal_transaction = JournalTransactionType.objects.get(id=JOURNAL_TRANSACTION_TRANSFER_REQUESTOR_PAYMENT_FROM_OPERATION_ID)
         from_credit_operation_account = CreditOperation.objects.get(external_account_id=external_operation_id)
 
         to_requester_account = Account.objects.get(id=account)
@@ -132,6 +134,7 @@ class RequesterPaymentFromOperation(Service):
             # Posting Operation v/s Requestor, T Accounts
             ###########################################
             create_journal_input = {
+                'batch_transaction_id': BATCH_TRANSACTION_TYPE_REQUESTOR_PAYMENT_ID,
                 'transaction_type_id': journal_transaction.id,
                 'from_account_id': from_credit_operation_account.id,
                 'to_account_id': to_requester_account.id,
@@ -139,11 +142,19 @@ class RequesterPaymentFromOperation(Service):
                 'total_amount': Decimal(total_amount),
                 }
             journal = CreateJournalService.execute(create_journal_input)
+            self.log.info("RequesterPaymentFromOperation journal ")
+            self.log.info(str(journal))
+
 
             # Posting Operation v/s Requestor, T Accounts
             # Cost Posting Process
             #######################
-            costTransaction(self, transaction_cost_list=requester_costs, journal=journal, asset_type=asset_type, from_account=to_requester_account)
+            costTransaction(self,
+                            transaction_cost_list=requester_costs,
+                            journal_transaction_definition_id= JOURNAL_TRANSACTION_TRANSFER_COST_PAYMENT_FROM_REQUESTER_ID,
+                            journal=journal,
+                            asset_type=asset_type,
+                            from_account=to_requester_account)
 
         else:
         ###### NO ES facturABLE el COSTO AL SOLICITANTE:::UTILIDAD POR MAYOR VALOR!!!###############
@@ -182,11 +193,12 @@ class RequesterPaymentFromOperation(Service):
         #######################
         #Envio a Paysheet
         if AUTOMATIC_BANK_TRANSFER:
-            journal_transaction_reinbursable_cost = JournalTransactionType.objects.get(id=REINBURSABLE_COSTS_TYPE)
+            journal_transaction_reinbursable_cost = JournalTransactionType.objects.get(id=JOURNAL_TRANSACTION_TRANSFER_IN_BANK_PROCESS_ID)
             cumplo_operation_bank_account = Account.objects.get(id=CUMPLO_OPERATION_ACCOUNT_ID)
 
 
             create_journal_input = {
+                'batch_transaction_id': BATCH_TRANSACTION_TYPE_REQUESTOR_PAYMENT_ID,
                 'transaction_type_id': journal_transaction_reinbursable_cost.id,
                 'from_account_id': to_requester_account.id,
                 'to_account_id': cumplo_operation_bank_account.id,
