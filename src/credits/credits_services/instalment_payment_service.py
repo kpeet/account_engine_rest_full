@@ -1,7 +1,7 @@
 from service_objects.services import Service
 from service_objects.fields import MultipleFormField, ModelField
 from django import forms
-from account_engine.models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount
+from account_engine.models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount, BATCH_TRANSACTION_TYPE_PAYMENT_INSTALMENT_ID, JOURNAL_TRANSACTION_TRANSFER_INSTALMENT_PAYMENT_FROM_SOME_PAYER_ID
 from account_engine.account_engine_services import UpdateBalanceAccountService
 from django.db.models import Sum
 from credits.models import CreditOperation, Instalment
@@ -88,7 +88,6 @@ class InstalmentPayment(Service):
 
     def process(self):
         self.log.info("InstalmentPayment Service : process start")
-        transaction_type = 6  # Pago de cuotas
         # Init Data
         instalments_ok_for_notification = []
         for instalment in self.cleaned_data['instalment_list_to_pay']:
@@ -101,7 +100,6 @@ class InstalmentPayment(Service):
             asset_type = instalment.cleaned_data['asset_type']
 
             # Get and Process Data
-            journal_transaction = JournalTransactionType.objects.get(id=transaction_type)
             to_operation_account = CreditOperation.objects.get(external_account_id=external_operation_id)
             from_payer_account = Account.objects.get(id=payer_account_id)
             asset_type = AssetType.objects.get(id=asset_type)
@@ -117,7 +115,8 @@ class InstalmentPayment(Service):
             # Creacion de Posting
             try:
                 create_journal_input = {
-                    'transaction_type_id': journal_transaction.id,
+                    'batch_transaction_id': BATCH_TRANSACTION_TYPE_PAYMENT_INSTALMENT_ID,
+                    'transaction_type_id': JOURNAL_TRANSACTION_TRANSFER_INSTALMENT_PAYMENT_FROM_SOME_PAYER_ID,
                     'from_account_id': from_payer_account.id,
                     'to_account_id': to_operation_account.id,
                     'asset_type': 1,
@@ -136,14 +135,10 @@ class InstalmentPayment(Service):
                 # TODO: Implementar SNS, verificar cual es y como esta configurado su comportamiento
                 if SEND_AWS_SNS:
 
-                    self.log.info("start SEND_AWS_SNS")
+
                     sns = SnsServiceLibrary()
-                    self.log.info(str("settings.SNS_INSTALMENT_PAYMENT"))
-                    self.log.info(str(settings.SNS_INSTALMENT_PAYMENT))
 
                     sns_topic = generate_sns_topic(settings.SNS_INSTALMENT_PAYMENT)
-                    self.log.info(str("sns_topic"))
-                    self.log.info(str(sns_topic))
                     arn = sns.get_arn_by_name(sns_topic)
 
                     attribute = sns.make_attributes(
@@ -162,7 +157,7 @@ class InstalmentPayment(Service):
                 else:
                     self.log.info("Sin envio a SEND_AWS_SNS")
 
-                return model_to_dict(journal_transaction)
+                return model_to_dict(journal)
             except Exception as e:
                 raise e
 
