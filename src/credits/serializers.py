@@ -366,6 +366,8 @@ class JournalInvestorPaymentFromInstalmentOperationSerializer(serializers.Serial
 
 
         self.log.info("SEND TO InvestorPaymentFromOperation SERVICE" + str(validated_data['external_operation_id']))
+        self.log.info("SEND TO InvestorPaymentFromOperation validated_data['investors']: ")
+        self.log.info(str(validated_data['investors']))
 
         requester_payment_from_operation = InvestorPaymentFromOperation.execute(
             {

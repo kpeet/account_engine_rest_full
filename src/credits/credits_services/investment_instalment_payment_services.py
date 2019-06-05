@@ -1,7 +1,7 @@
 from service_objects.services import Service
 from service_objects.fields import MultipleFormField
 from django import forms
-from account_engine.models import JournalTransactionType, Journal, AssetType, Account, DWHBalanceAccount
+from account_engine.models import JournalTransactionType, Journal, AssetType, Account, DWHBalanceAccount, BATCH_TRANSACTION_TYPE_INVESTOR_PAYMENT_ID,JOURNAL_TRANSACTION_TRANSFER_INVESTOR_FROM_CREDIT_ID, JOURNAL_TRANSACTION_TRANSFER_IN_BANK_PROCESS_ID
 from credits.models import CreditOperation, Instalment
 from django.forms.models import model_to_dict
 from decimal import Decimal
@@ -69,6 +69,8 @@ class InvestorPaymentFromOperation(Service):
                 "No hay cuenta bancaria registrada para la cuenta de operación. Operación Cancelada!!")
 
         total_investment_instalment = 0
+        self.log.info("InvestorPaymentFromOperation:: investors")
+        self.log.info(str(investors))
         for investor in investors:
 
             external_investment_instalment = investor.cleaned_data['external_investment_instalment_id']
@@ -140,8 +142,6 @@ class InvestorPaymentFromOperation(Service):
 
         # Get and Process Data
         journal_transaction = JournalTransactionType.objects.get(id=transaction_type)
-        journal = Journal.objects.create(batch=None, gloss=journal_transaction.description,
-                                         journal_transaction=journal_transaction)
         asset_type = AssetType.objects.get(id=asset_type)
 
         operation = CreditOperation.objects.get(external_account_id=external_credit_operation_id)
@@ -169,7 +169,8 @@ class InvestorPaymentFromOperation(Service):
             # Posting Operation v/s Investor, T Accounts
             ###########################################
             create_journal_input = {
-                'transaction_type_id': journal_transaction.id,
+                'batch_transaction_id': BATCH_TRANSACTION_TYPE_INVESTOR_PAYMENT_ID,
+                'transaction_type_id': JOURNAL_TRANSACTION_TRANSFER_INVESTOR_FROM_CREDIT_ID,
                 'from_account_id': operation.id,
                 'to_account_id': investor_account.id,
                 'asset_type': asset_type.id,
@@ -190,11 +191,11 @@ class InvestorPaymentFromOperation(Service):
             #######################
             # Envio a Paysheet
             if AUTOMATIC_BANK_TRANSFER:
-                journal_transaction_reinbursable_cost = JournalTransactionType.objects.get(id=REINBURSABLE_COSTS_TYPE)
                 cumplo_operation_bank_account = Account.objects.get(id=CUMPLO_OPERATION_ACCOUNT_ID)
 
                 create_journal_input = {
-                    'transaction_type_id': journal_transaction_reinbursable_cost.id,
+                    'batch_transaction_id': BATCH_TRANSACTION_TYPE_INVESTOR_PAYMENT_ID,
+                    'transaction_type_id': JOURNAL_TRANSACTION_TRANSFER_IN_BANK_PROCESS_ID,
                     'from_account_id': investor_account.id,
                     'to_account_id': cumplo_operation_bank_account.id,
                     'asset_type': asset_type.id,
@@ -205,7 +206,8 @@ class InvestorPaymentFromOperation(Service):
                 send_AWS_SNS_treasury_paysheet_line(self, to_account=investor_account,
                                                     from_account=cumplo_operation_bank_account,
                                                     transfer_amount=investor_amount,
-                                                    paysheet_type="investor", journal=journal)
+                                                    paysheet_type="investor",
+                                                    journal=journal)
 
         return model_to_dict(journal)
 

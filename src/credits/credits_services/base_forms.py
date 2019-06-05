@@ -78,19 +78,4 @@ class PaymentToInvestorForm(forms.Form):
     investment_instalment_cost = MultipleFormField(CostForm, required=False)
 
     def clean(self):
-
-        cleaned_data = super().clean()
-        investment_id = cleaned_data.get("investment_id")
-
-        investment = InvestmentCreditOperation.objects.filter(investment_id=investment_id)
-        if investment.exists():
-            pass
-
-        else:
-
-            log.info("La Inversion No hay sido Ingresada en el proceso de Financiamiento de Operacion investment id:"
-                          +str(investment_id))
-            raise forms.ValidationError("La Inversion con id:"
-                                        +str(investment_id)
-                                        +" No hay sido Ingresada en el proceso de Financiamiento de Operacion")
-
+        pass
