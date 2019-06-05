@@ -16,8 +16,8 @@ class AccountViewSet(ModelViewSet):
 
     @action(detail=True, )
     def posting_history(self, request, pk=None):
-        queryset = Posting.objects.select_related('journal').values('journal__gloss', 'amount', 'created_at').filter(
-            account_id=pk)
+        queryset = Posting.objects.select_related('journal').values('journal__batch__batch_transaction__description','journal__gloss', 'amount', 'journal__batch__batch_transaction','created_at').filter(
+            account_id=pk).order_by('-created_at')
 
         return Response(queryset)
 
