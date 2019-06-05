@@ -1,7 +1,7 @@
 from service_objects.services import Service
 from service_objects.fields import MultipleFormField, ModelField
 from django import forms
-from account_engine.models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount
+from account_engine.models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount, BATCH_TRANSACTION_TYPE_FINANCING_ID,JOURNAL_TRANSACTION_TRANSFER_COST_PAYMENT_BY_INVESTMENT_ID,  JOURNAL_TRANSACTION_TRANSFER_CREDIT_PAYMENT_FROM_INVESTMENT_ID
 from account_engine.account_engine_services import UpdateBalanceAccountService
 from django.db.models import Sum
 from credits.models import CreditOperation, InvestmentCreditOperation
@@ -15,6 +15,8 @@ from django.conf import settings
 from .helper_services import CUMPLO_COST_ACCOUNT, CUMPLO_OPERATION_ACCOUNT_ID, SEND_AWS_SNS
 import logging
 from account_engine.account_engine_services import CreateJournalService
+
+
 
 
 class FinanceOperationByInvestmentTransaction(Service):
@@ -73,7 +75,8 @@ class FinanceOperationByInvestmentTransaction(Service):
             list_validation_investment_error.append(investment_error)
         try:
             CreditOperation.objects.filter(external_account_id=external_operation_id)
-            JournalTransactionType.objects.filter(id=FinanceOperationByInvestmentTransaction.TRANSACTION_TYPE)
+            JournalTransactionType.objects.filter(id=JOURNAL_TRANSACTION_TRANSFER_COST_PAYMENT_BY_INVESTMENT_ID)
+            JournalTransactionType.objects.filter(id=JOURNAL_TRANSACTION_TRANSFER_CREDIT_PAYMENT_FROM_INVESTMENT_ID)
 
             investor_account = Account.objects.get(id=investor_account_id)
 
@@ -136,7 +139,8 @@ class FinanceOperationByInvestmentTransaction(Service):
 
     def process(self):
         self.log.info("FinanceOperationByInvestmentTransaction:: process start")
-        transaction_type = FinanceOperationByInvestmentTransaction.TRANSACTION_TYPE  # Financiamiento de operación por Inversión
+        transaction_financing_credit_type = JOURNAL_TRANSACTION_TRANSFER_CREDIT_PAYMENT_FROM_INVESTMENT_ID  # Financiamiento de operación por Inversión
+        transaction__pay_cost_type = JOURNAL_TRANSACTION_TRANSFER_COST_PAYMENT_BY_INVESTMENT_ID  # Financiamiento de operación por Inversión
         # Init Data
         account = self.cleaned_data['account']
         investment_id = self.cleaned_data['investment_id']
@@ -149,7 +153,7 @@ class FinanceOperationByInvestmentTransaction(Service):
 
         # Get and Process Data
         to_operation_account = CreditOperation.objects.get(external_account_id=external_operation_id)
-        journal_transaction = JournalTransactionType.objects.get(id=transaction_type)
+        #journal_transaction = JournalTransactionType.objects.get(id=transaction_financing_credit_type)
         from_account = Account.objects.get(id=account)
         asset_type = AssetType.objects.get(id=asset_type)
         # Traigo la cuenta de cumplo asesorias
@@ -158,7 +162,8 @@ class FinanceOperationByInvestmentTransaction(Service):
         # Posting Operation v/s Investor, T Accounts
         ###########################################
         create_journal_input = {
-            'transaction_type_id': journal_transaction.id,
+            'batch_transaction_id': BATCH_TRANSACTION_TYPE_FINANCING_ID,
+            'transaction_type_id': transaction_financing_credit_type,
             'from_account_id': from_account.id,
             'to_account_id': to_operation_account.id,
             'asset_type': asset_type.id,
@@ -169,7 +174,7 @@ class FinanceOperationByInvestmentTransaction(Service):
         # POSTING inversionista v/s costos cumplo
         if investment_costs:
             total_cost_amount=costTransaction(self,transaction_cost_list=investment_costs, journal=journal, asset_type=asset_type,
-                            from_account=from_account)
+                            from_account=from_account, journal_transaction_definition_id=JOURNAL_TRANSACTION_TRANSFER_COST_PAYMENT_BY_INVESTMENT_ID)
 
         InvestmentCreditOperation.objects.create(
             investor=from_account,

@@ -2,6 +2,24 @@ from django.db import models
 from django.db.models.fields import DateTimeField
 from decimal import Decimal
 
+BATCH_TRANSACTION_TYPE_REAL_VIRTUAL_ID = 1
+BATCH_TRANSACTION_TYPE_FINANCING_ID = 2
+BATCH_TRANSACTION_TYPE_REQUESTOR_PAYMENT_ID = 3
+BATCH_TRANSACTION_TYPE_PAYMENT_INSTALMENT_ID = 4
+BATCH_TRANSACTION_TYPE_INVESTOR_PAYMENT_ID = 5
+
+
+JOURNAL_TRANSACTION_TRANSFER_REAL_TO_VIRTUAL_ACCOUNT_ID = 1
+JOURNAL_TRANSACTION_TRANSFER_COST_PAYMENT_BY_INVESTMENT_ID = 2
+JOURNAL_TRANSACTION_TRANSFER_CREDIT_PAYMENT_FROM_INVESTMENT_ID = 3
+JOURNAL_TRANSACTION_TRANSFER_REQUESTOR_PAYMENT_FROM_OPERATION_ID = 4
+JOURNAL_TRANSACTION_TRANSFER_COST_PAYMENT_FROM_REQUESTER_ID = 5
+JOURNAL_TRANSACTION_TRANSFER_INSTALMENT_PAYMENT_FROM_SOME_PAYER_ID = 6
+JOURNAL_TRANSACTION_TRANSFER_COST_PAYMENT_FROM_CREDIT_ID = 7
+JOURNAL_TRANSACTION_TRANSFER_REAL_TO_VIRTUAL_ACCOUNT_ID = 8
+JOURNAL_TRANSACTION_TRANSFER_IN_BANK_PROCESS_ID = 9
+JOURNAL_TRANSACTION_TRANSFER_OK_BANK_PROCESS_ID = 10
+
 
 class MixinDateModel(models.Model):
     created_at = DateTimeField(auto_now_add=True)
@@ -9,7 +27,6 @@ class MixinDateModel(models.Model):
 
     class Meta:
         abstract = True
-
 
 class AccountType(MixinDateModel):
     account_type = models.CharField(unique=True, null=False, max_length=150)
@@ -52,11 +69,15 @@ class BankAccount(MixinDateModel):
 # def positive_number(value):
 #     if value < Decimal(0):
 #      raise ValidationError("Must be positive")
+class BatchTransactionType(MixinDateModel):
+
+    description = models.TextField(max_length=150)
 
 
 class Batch(MixinDateModel):
     description = models.CharField(max_length=150)
     total_amount = models.DecimalField(null=False, default=Decimal('0.00000'), max_digits=20, decimal_places=2)# validators=[positive_number])
+    batch_transaction = models.ForeignKey(BatchTransactionType, default=None, null=False, on_delete=models.PROTECT)
 
 
 class Instalment(MixinDateModel):

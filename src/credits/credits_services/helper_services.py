@@ -1,6 +1,6 @@
 from account_engine.models import Account, Posting
 from decimal import Decimal
-from account_engine.account_engine_services import AddPostingToJournalService, REINBURSABLE_COSTS_TYPE
+from account_engine.account_engine_services import AddPostingToBatchService, REINBURSABLE_COSTS_TYPE
 from sns_sqs_services.services import SnsService as SnsServiceLibrary
 from core_account_engine.utils import generate_sns_topic
 from account_engine.models import BankAccount, Journal
@@ -17,28 +17,51 @@ SEND_AWS_SNS = True
 AUTOMATIC_BANK_TRANSFER=True
 
 
-def costTransaction(self, transaction_cost_list, journal, asset_type, from_account):
+def costTransaction(self, transaction_cost_list, journal_transaction_definition_id,journal, asset_type, from_account):
+    self.log.info("SEND COST TO PAYSHEET:transaction_cost_list:::" )
+    self.log.info(str(transaction_cost_list))
+
     total_cost_amount=0
+    cost_list_to_paysheet = []
     for requester_cost in transaction_cost_list:
-        cost_list_to_paysheet = []
+
+        self.log.info("SEND COST TO PAYSHEET:requester_cost:::")
+        self.log.info(str(requester_cost.cleaned_data))
+
+
         cost_account_id = requester_cost.cleaned_data['account_engine_properties']['destination_account']['id']
         cost_amount = Decimal(requester_cost.cleaned_data['amount'])
         total_cost_amount= total_cost_amount+ cost_amount
         paysheet_type = "cost"
         add_posting_to_journal_input = {
-            'journal_id': journal.id,
+            'batch_id': journal.batch_id,
+            'journal_type_id': journal_transaction_definition_id,
             'from_account_id': from_account.id,
             'to_account_id': cost_account_id,
             'asset_type': asset_type.id,
             'total_amount': cost_amount,
         }
-        AddPostingToJournalService.execute(add_posting_to_journal_input)
+
+        journal_cost = AddPostingToBatchService.execute(add_posting_to_journal_input)
+
+        #LOS COSTOS SON SACADOS DE LA CUENTA DE OPERACIONES Y MANDADOS A LA CUENTA DE COSTOS
         cost_list_to_paysheet.append(
-            {"cost_account_id": cost_account_id, "from_account": from_account.id, "cost_amount": cost_amount})
+            {"cost_account_id": cost_account_id, "from_account": from_account.id, "cost_amount": cost_amount, "journal": journal_cost})
 
+
+
+    self.log.info("SEND COST TO PAYSHEET:cost_list_to_paysheet:::" )
+    self.log.info(str(cost_list_to_paysheet))
     for cost_to_paysheet in cost_list_to_paysheet:
+        self.log.info("SEND COST TO PAYSHEET"+str(cost_to_paysheet["cost_account_id"]))
 
-        send_AWS_SNS_treasury_paysheet_line(self, cost_to_paysheet["cost_account_id"], cost_to_paysheet["from_account"], cost_to_paysheet["cost_amount"], paysheet_type, journal=journal)
+        send_AWS_SNS_treasury_paysheet_line(self,
+                                            to_account=cost_to_paysheet["cost_account_id"],
+                                            from_account=CUMPLO_OPERATION_ACCOUNT_ID,
+                                            transfer_amount=cost_to_paysheet["cost_amount"],
+                                            paysheet_type=paysheet_type,
+                                            journal=cost_to_paysheet["journal"]
+                                            )
 
     return total_cost_amount
 

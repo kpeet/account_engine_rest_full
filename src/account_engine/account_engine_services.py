@@ -1,7 +1,7 @@
 from service_objects.services import Service
 from service_objects.fields import MultipleFormField, ModelField
 from django import forms
-from .models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount
+from .models import JournalTransactionType, Journal, Posting, AssetType, Account, DWHBalanceAccount, Batch,BatchTransactionType, BATCH_TRANSACTION_TYPE_REAL_VIRTUAL_ID
 from django.db.models import Sum
 from decimal import Decimal
 import logging
@@ -36,7 +36,7 @@ class UpdateBalanceAccountService(Service):
 
 class CreateJournalService(Service):
     log = logging.getLogger("info_logger")
-
+    batch_transaction_id = forms.IntegerField(required=True)
     transaction_type_id = forms.IntegerField(required=True)
     from_account_id = forms.IntegerField(required=True)
     to_account_id = forms.IntegerField(required=True)
@@ -51,8 +51,13 @@ class CreateJournalService(Service):
         from_account_id = cleaned_data.get('from_account_id')
         to_account_id = cleaned_data.get('to_account_id')
         total_amount = cleaned_data.get('total_amount')
+        batch_transaction_id = cleaned_data.get('batch_transaction_id')
 
         try:
+            self.log.info("CreateJournalService transaction_type_id::"+str(transaction_type_id))
+            self.log.info("CreateJournalService batch_transaction_id::"+str(batch_transaction_id))
+
+            BatchTransactionType.objects.get(id=batch_transaction_id)
             JournalTransactionType.objects.get(id=transaction_type_id)
             from_account = Account.objects.get(id=from_account_id)
             Account.objects.get(id=to_account_id)
@@ -71,15 +76,19 @@ class CreateJournalService(Service):
     def process(self):
         self.log.info("CreateJournalService INIT process")
         transaction_type_id = self.cleaned_data['transaction_type_id']
+        batch_transaction_id = self.cleaned_data['batch_transaction_id']
         from_account_id = self.cleaned_data['from_account_id']
         to_account_id = self.cleaned_data['to_account_id']
         asset_type = self.cleaned_data['asset_type']
         total_amount = self.cleaned_data['total_amount']
 
+
+        batch_transaction_type = BatchTransactionType.objects.get(id=batch_transaction_id)
         journal_transaction = JournalTransactionType.objects.get(id=transaction_type_id)
 
         # Creacion de asiento
-        journal = Journal.objects.create(batch=None, gloss=journal_transaction.description,
+        batch = Batch.objects.create(batch_transaction=batch_transaction_type, total_amount=Decimal(total_amount))
+        journal = Journal.objects.create(batch=batch, gloss=journal_transaction.description,
                                          journal_transaction=journal_transaction)
 
         # Descuento a la cuenta del inversionista
@@ -105,9 +114,10 @@ class CreateJournalService(Service):
         return journal
 
 
-class AddPostingToJournalService(Service):
+class AddPostingToBatchService(Service):
     log = logging.getLogger("info_logger")
-    journal_id = forms.IntegerField(required=True)
+    batch_id = forms.IntegerField(required=True)
+    journal_type_id = forms.IntegerField(required=True)
     from_account_id = forms.IntegerField(required=True)
     to_account_id = forms.IntegerField(required=True)
     asset_type = forms.IntegerField(required=True)
@@ -117,12 +127,17 @@ class AddPostingToJournalService(Service):
         self.log.info("AddPostingToJournalService INIT clean")
         total_cost = 0
         cleaned_data = super().clean()
-        journal_id = cleaned_data.get('journal_id')
+        batch_id= cleaned_data.get('batch_id')
         from_account_id = cleaned_data.get('from_account_id')
         to_account_id = cleaned_data.get('to_account_id')
+        journal_type_id = cleaned_data.get('journal_type_id')
 
         try:
-            Journal.objects.get(id=journal_id)
+            self.log.info("AddPostingToBatchService journal_type_id::" + str(journal_type_id))
+            self.log.info("AddPostingToBatchService batch_id::" + str(batch_id))
+
+            Batch.objects.get(id=batch_id)
+            JournalTransactionType.objects.get(id=journal_type_id)
             Account.objects.get(id=from_account_id)
             Account.objects.get(id=to_account_id)
         except Exception as e:
@@ -133,14 +148,20 @@ class AddPostingToJournalService(Service):
 
     def process(self):
         self.log.info("AddPostingToJournalService INIT process")
-        journal_id = self.cleaned_data['journal_id']
+        journal_type_id = self.cleaned_data['journal_type_id']
+        batch_id = self.cleaned_data['batch_id']
         from_account_id = self.cleaned_data['from_account_id']
         to_account_id = self.cleaned_data['to_account_id']
         asset_type = self.cleaned_data['asset_type']
         total_amount = self.cleaned_data['total_amount']
 
         # Creacion de asiento
-        journal = Journal.objects.get(id=journal_id)
+        journal_transaction = JournalTransactionType.objects.get(id=journal_type_id)
+        batch = Batch.objects.get(id=batch_id)
+
+        # Creacion de asiento
+        journal = Journal.objects.create(batch=batch, gloss=journal_transaction.description,
+                                         journal_transaction=journal_transaction)
 
         # Descuento a la cuenta del inversionista
         posting_from = Posting.objects.create(account_id=from_account_id, asset_type_id=asset_type, journal=journal,
@@ -173,23 +194,33 @@ class RealToVirtualDepositService(Service):
     transaction_type_id = forms.IntegerField(required=True)
     deposit_date = forms.DateField(required=True)
 
+    log = logging.getLogger("info_logger")
+
     def clean(self):
+        self.log.info("RealToVirtualDepositService clean : start")
+
         try:
             cleaned_data = super().clean()
             transaction_type_input = cleaned_data.get('transaction_type_id')
             asset_type_id_input = cleaned_data.get('asset_type_id')
             virtual_account_id_input = cleaned_data.get('virtual_account_id')
+
             JournalTransactionType.objects.get(id=transaction_type_input)
             AssetType.objects.get(id=asset_type_id_input)
             Account.objects.get(id=virtual_account_id_input)
+            Batch.objects.get(id=BATCH_TRANSACTION_TYPE_REAL_VIRTUAL_ID)
+            self.log.info("RealToVirtualDepositService clean : END")
 
             return cleaned_data
         except Exception as e:
             raise forms.ValidationError(str(e))
 
     def process(self):
+        self.log.info("RealToVirtualDepositService process : start")
+
         try:
             real_account_id_input = self.cleaned_data['real_account_id']
+
             virtual_account_id_input = self.cleaned_data['virtual_account_id']
             asset_type_id_input = self.cleaned_data['asset_type_id']
             amount_input = self.cleaned_data['amount']
@@ -197,12 +228,16 @@ class RealToVirtualDepositService(Service):
             transaction_type_input = 2
             deposit_date_input = self.cleaned_data['deposit_date']
             # Get Datas
+            batch_transaction_type = BatchTransactionType.objects.get(id=BATCH_TRANSACTION_TYPE_REAL_VIRTUAL_ID)
             transaction_type = JournalTransactionType.objects.get(id=transaction_type_input)
+
+            #Creacion de asiendo para caso real a virtual
+            batch = Batch.objetcs.create(batch_transaction=batch_transaction_type, total_amount=amount_input)
 
             journal = Journal.objects.create(journal_transaction_id=transaction_type_input,
                                              gloss=transaction_type.description + ", deposit date:" + str(
                                                  deposit_date_input),
-                                             batch=None)
+                                             batch=batch)
 
             posting_data = Posting.objects.create(account_id=virtual_account_id_input, journal=journal,
                                                   amount=amount_input,
@@ -212,7 +247,7 @@ class RealToVirtualDepositService(Service):
                 'account_id': virtual_account_id_input
             }
             UpdateBalanceAccountService.execute(updated_account_balance)
-
+            self.log.info("RealToVirtualDepositService process : END")
             return posting_data
         except Exception as e:
             raise e

@@ -101,6 +101,61 @@
       "created_at": "2018-11-14T23:24:16.038Z",
       "updated_at": "2018-11-14T23:24:16.038Z"
       }
+  }, {
+      "model": "account_engine.Account",
+      "pk": 3,
+      "fields": {
+      "name": "Cumplo Reembolsables",
+      "external_account_id": 3,
+      "external_account_type": 4,
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z"
+      }
+  },
+  {
+    "model": "account_engine.BatchTransactionType",
+    "pk": 1,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Transferencia desde cuenta Virtual a Real"
+    }
+  },
+  {
+    "model": "account_engine.BatchTransactionType",
+    "pk": 2,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Financiamiento de Operacion por Inversion"
+    }
+  },
+  {
+    "model": "account_engine.BatchTransactionType",
+    "pk": 3,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Pago a Solicitante desde Operacion"
+    }
+  },
+  {
+    "model": "account_engine.BatchTransactionType",
+    "pk": 4,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Pago de Cuota a Operacion"
+    }
+  },
+  {
+    "model": "account_engine.BatchTransactionType",
+    "pk": 5,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Pago a Inversionista desde Operacion"
+    }
   },
   {
     "model": "account_engine.JournalTransactionType",
@@ -118,7 +173,7 @@
     "fields": {
       "created_at": "2018-11-14T23:24:16.038Z",
       "updated_at": "2018-11-14T23:24:16.038Z",
-      "description": "Transferencia desde cuenta Virtual a Real"
+      "description": "Pago de Costo por Inversion"
 
     }
   },
@@ -128,7 +183,7 @@
     "fields": {
       "created_at": "2018-11-14T23:24:16.038Z",
       "updated_at": "2018-11-14T23:24:16.038Z",
-      "description": "Transferencia desde cuenta Virtual a cuenta de Operacion"
+      "description": "Pago de Operacion por Inversion"
 
     }
   },
@@ -138,7 +193,7 @@
     "fields": {
       "created_at": "2018-11-14T23:24:16.038Z",
       "updated_at": "2018-11-14T23:24:16.038Z",
-      "description": "Financiamiento de operacion por Inversion"
+      "description": "Pago a Solicitane por Operacion"
 
     }
   },
@@ -148,7 +203,7 @@
     "fields": {
       "created_at": "2018-11-14T23:24:16.038Z",
       "updated_at": "2018-11-14T23:24:16.038Z",
-      "description": "Instruccion de pago a Solicitante"
+      "description": "Pago de Costo por Pago a Solicitante"
 
     }
   },
@@ -158,7 +213,7 @@
     "fields": {
       "created_at": "2018-11-14T23:24:16.038Z",
       "updated_at": "2018-11-14T23:24:16.038Z",
-      "description": "Instruccion de pago de Cuota de Operación"
+      "description": "Pago de Cuota de Operacion"
 
     }
   },
@@ -168,7 +223,7 @@
     "fields": {
       "created_at": "2018-11-14T23:24:16.038Z",
       "updated_at": "2018-11-14T23:24:16.038Z",
-      "description": "Instruccion de pago a Inversionistas"
+      "description": "Pago a Inversionista"
 
     }
   },
@@ -178,7 +233,27 @@
     "fields": {
       "created_at": "2018-11-14T23:24:16.038Z",
       "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Pago de Costos por pago a Inversionista"
+
+    }
+  },
+  {
+    "model": "account_engine.JournalTransactionType",
+    "pk": 9,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
       "description": "En proceso de Transferencia Bancaria"
+
+    }
+  },
+  {
+    "model": "account_engine.JournalTransactionType",
+    "pk": 10,
+    "fields": {
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z",
+      "description": "Transferencia Bancaria confirmada"
 
     }
   },
@@ -209,6 +284,22 @@
       "account_bank_type": 4,
       "account_holder_name": "Cumplo Operaciones Costos",
       "account_holder_document_number": "1534549164",
+      "created_at": "2018-11-14T23:24:16.038Z",
+      "updated_at": "2018-11-14T23:24:16.038Z"
+
+    }
+  },
+  {
+    "model": "account_engine.BankAccount",
+    "pk": 3,
+    "fields": {
+      "account_id": 3,
+      "bank_account_number": "120029989",
+      "account_notification_email": "it@cumplo.com",
+      "bank_code": 0,
+      "account_bank_type": 4,
+      "account_holder_name": "Cumplo Chile S.A.",
+      "account_holder_document_number": "761776215",
       "created_at": "2018-11-14T23:24:16.038Z",
       "updated_at": "2018-11-14T23:24:16.038Z"
 
