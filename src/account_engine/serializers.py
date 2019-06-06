@@ -204,9 +204,10 @@ class JournalOperationInvestmentTransactionSerializer(serializers.Serializer):
 
 
 class DWHBalanceAccountSerializer(ModelSerializer):
+    account = AccountSerializer(many=False)
     class Meta:
         model = DWHBalanceAccount
-        fields = "__all__"
+        fields = ('balance_account_amount','account')
 
 
 class BankRegistrySerializer(serializers.ModelSerializer):
