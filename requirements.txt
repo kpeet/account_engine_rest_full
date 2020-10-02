@@ -12,10 +12,11 @@ requests==2.21.0
 
 celery[redis]==4.2.1
 
-urllib3==1.24.1
+urllib3==1.25.9
 boto3==1.9.98
 zxing==0.9.3
 django-filter==2.1.0
 django-sns-sqs-services==0.1.1
 sentry-sdk==0.7.14
 django-service-objects==0.5.0
+django-rest-framework>=3.11.2 # not directly required, pinned by Snyk to avoid a vulnerability
